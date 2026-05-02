@@ -1,11 +1,8 @@
 using System.Text;
 using API.Data;
 using API.Entities;
-using API.Interfaces;
-using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
@@ -16,13 +13,13 @@ namespace API.Extensions
     {
         public static IServiceCollection AddIdentityServices(this IServiceCollection services, IConfiguration config)
         {
-            services.AddIdentityCore<AppUser>(opt =>
+            services.AddIdentityCore<User>(opt =>
             {
                 opt.Password.RequireNonAlphanumeric = false;
-            }) .AddRoles<AppRole>()
-               .AddRoleManager<RoleManager<AppRole>>()
-               .AddSignInManager<SignInManager<AppUser>>()
-               .AddRoleValidator<RoleValidator<AppRole>>()
+            }) .AddRoles<Role>()
+               .AddRoleManager<RoleManager<Role>>()
+               .AddSignInManager<SignInManager<User>>()
+               .AddRoleValidator<RoleValidator<Role>>()
                .AddEntityFrameworkStores<DataContext>();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -30,11 +27,13 @@ namespace API.Extensions
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["TokenKey"])),
-                        ValidateIssuer = false,
-                        ValidateAudience = false,
+                        ValidateIssuerSigningKey = true,
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
                     };
+                    options.Audience = config["TokenAudience"];
+                    options.ClaimsIssuer = config["TokenIssuer"];
                 });
 
         services.AddAuthorization(opt =>

@@ -13,22 +13,17 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace API.Services
 {
-    public class TokenService : ITokenService
+    public class TokenService(IConfiguration config, UserManager<User> userManager) : ITokenService
     {
-        private readonly SymmetricSecurityKey _key;
-        private readonly UserManager<AppUser> _userManager;
-        public TokenService(IConfiguration config, UserManager<AppUser> userManager)
-        {
-            _userManager = userManager;
-            _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["TokenKey"]));
-        }
+        private readonly SymmetricSecurityKey _key = new(Encoding.UTF8.GetBytes(config["TokenKey"]));
+        private readonly UserManager<User> _userManager = userManager;
 
-        public async Task<string> CreateToken(AppUser user)
+        public async Task<string> CreateToken(User user)
         {
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.NameId, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName)
+                new(JwtRegisteredClaimNames.NameId, user.Id.ToString()),
+                new(JwtRegisteredClaimNames.UniqueName, user.UserName)
             };
 
             var roles = await _userManager.GetRolesAsync(user);
@@ -38,9 +33,11 @@ namespace API.Services
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(claims), 
-                Expires = DateTime.Now.AddDays(7),
-                SigningCredentials = creds
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.Now.AddHours(1),
+                SigningCredentials = creds,
+                Issuer = config["TokenIssuer"],
+                Audience = config["TokenAudience"]
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();

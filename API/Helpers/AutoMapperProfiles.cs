@@ -8,12 +8,12 @@ namespace API.Helpers
     {
         public AutoMapperProfiles()
         {
-            CreateMap<AppUser, MemberDto>()
+            CreateMap<User, MemberDto>()
                 .ForMember(dest => dest.AvatarUrl, opt => opt.MapFrom(src =>
                 src.Avatar.Url));
             CreateMap<Photo, PhotoDto>();
-            CreateMap<MemberUpdateDto, AppUser>();
-            CreateMap<RegisterDto, AppUser>();
+            CreateMap<MemberUpdateDto, User>();
+            CreateMap<RegisterDto, User>();
         }
     }
 }

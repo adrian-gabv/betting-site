@@ -4,22 +4,23 @@ using System.Threading.Tasks;
 using API.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace API.Data
 {
     public class Seed
     {
-        public static async Task SeedUsers(UserManager<AppUser> userManager, RoleManager<AppRole> roleManager)
+        public static async Task SeedUsers(UserManager<User> userManager, RoleManager<Role> roleManager, IConfiguration config)
         {
             if (await userManager.Users.AnyAsync()) return;
 
             var userData = await System.IO.File.ReadAllTextAsync("Data/UserSeedData.json");
-            var users = JsonSerializer.Deserialize<List<AppUser>>(userData);
+            var users = JsonSerializer.Deserialize<List<User>>(userData);
 
-            var roles = new List<AppRole>
+            var roles = new List<Role>
             {
-                new AppRole{Name = "User"},
-                new AppRole{Name = "Admin"}
+                new() {Name = "User"},
+                new() {Name = "Admin"}
             };
 
             foreach (var role in roles)
@@ -30,15 +31,15 @@ namespace API.Data
             foreach (var user in users)
             {
                 user.UserName = user.UserName.ToLower();
-                await userManager.CreateAsync(user, "P@$$w0rd");
+                await userManager.CreateAsync(user, config["DefaultPassword"]);
                 await userManager.AddToRoleAsync(user, "User");
             }
 
-            var admin = new AppUser
+            var admin = new User
             {
-                UserName = "ady4k"
+                UserName = config["DefaultAdminUsername"],
             };
-            await userManager.CreateAsync(admin, "P@$$w0rd");
+            await userManager.CreateAsync(admin, config["DefaultPassword"]);
             await userManager.AddToRoleAsync(admin, "Admin");
         }
     }

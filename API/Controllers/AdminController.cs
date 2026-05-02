@@ -8,16 +8,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
 {
-    public class AdminController : BaseApiController
+    [Route("admin")]
+    public class AdminController(UserManager<User> userManager) : BaseApiController
     {
-        private readonly UserManager<AppUser> _userManager;
-        public AdminController(UserManager<AppUser> userManager)
-        {
-            _userManager = userManager;
-        }
+        private readonly UserManager<User> _userManager = userManager;
 
         [Authorize(Policy = "AdminRole")]
-        [HttpGet("modifyroles")]
+        [HttpGet("modify-role")]
         public async Task<ActionResult> ModifyUserRoles()
         {
             var users = await _userManager.Users
@@ -34,7 +31,8 @@ namespace API.Controllers
             return Ok(users);
         }
 
-        [HttpPost("editroles/{username}")]
+        [Authorize(Policy = "AdminRole")]
+        [HttpPost("edit-roles/{username}")]
         public async Task<ActionResult> EditRoles(string username, [FromQuery] string roles)
         {
             var activeRoles = roles.Split(",").ToArray();

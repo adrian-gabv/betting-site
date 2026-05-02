@@ -4,15 +4,23 @@ namespace API.DTOs
 {
     public class RegisterDto
     {
-        [Required] public string Username { get; set; }
+        [Required]
+        public string Username { get; set; }
 
+        [Required]
         [StringLength(15, MinimumLength = 6)]
-        [Required] public string Password { get; set; }
-        [Required] public string First_Name { get; set; }
-        [Required] public string Last_Name { get; set; }
+        public string Password { get; set; }
 
+        [Required]
+        public string FirstName { get; set; }
+
+        [Required]
+        public string LastName { get; set; }
+
+        [Required]
         [EmailAddress]
-        [Required] public string Email { get; set; }
+        public string Email { get; set; }
+
         public int Money { get; set; } = 50;
 
     }
