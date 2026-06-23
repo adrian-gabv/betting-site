@@ -1,5 +1,3 @@
-using System.Linq;
-using System.Threading.Tasks;
 using API.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,17 +6,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
 {
-    public class AdminController : BaseApiController
+    [Authorize(Policy = "AdminRole")]
+    public class AdminController(UserManager<AppUser> userManager) : BaseApiController
     {
-        private readonly UserManager<AppUser> _userManager;
-        public AdminController(UserManager<AppUser> userManager)
-        {
-            _userManager = userManager;
-        }
+        private readonly UserManager<AppUser> _userManager = userManager;
 
-        [Authorize(Policy = "AdminRole")]
-        [HttpGet("modifyroles")]
-        public async Task<ActionResult> ModifyUserRoles()
+        [HttpGet("get-user-roles")]
+        public async Task<ActionResult> GetUserRoles()
         {
             var users = await _userManager.Users
                 .Include(ur => ur.UserRoles)
@@ -28,16 +22,22 @@ namespace API.Controllers
                 {
                     user.Id,
                     Username = user.UserName,
-                    Roles = user.UserRoles.Select(r => r.Role.Name).ToList()
+                    Roles = user.UserRoles.Where(r => r.Role != null).Select(r => r.Role!.Name).ToList()
                 })
                 .ToListAsync();
             return Ok(users);
         }
 
-        [HttpPost("editroles/{username}")]
+        [HttpPost("edit-roles/{username}")]
         public async Task<ActionResult> EditRoles(string username, [FromQuery] string roles)
         {
-            var activeRoles = roles.Split(",").ToArray();
+            if (string.IsNullOrWhiteSpace(roles)) return BadRequest("You must select at least one role");
+
+            var activeRoles = roles.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            var validRoles = new[] { "Admin", "Moderator", "User" };
+            if (activeRoles.Except(validRoles).Any()) return BadRequest("Invalid role(s) selected: " + string.Join(", ", activeRoles.Except(validRoles)));
+
             var user = await _userManager.FindByNameAsync(username);
             if (user == null) return NotFound("User does not exist");
 

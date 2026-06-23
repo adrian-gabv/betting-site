@@ -1,8 +1,8 @@
 [
   {
     "UserName": "Richard",
-    "First_Name": "Thomas",
-    "Last_Name": "Nolan",
+    "FirstName": "Thomas",
+    "LastName": "Nolan",
     "Email": "courtneyosborne@dentrex.com",
     "Money": 276,
     "Created": "2019-09-03",
@@ -13,8 +13,8 @@
   },
   {
     "UserName": "Phelps",
-    "First_Name": "Lynch",
-    "Last_Name": "Griffin",
+    "FirstName": "Lynch",
+    "LastName": "Griffin",
     "Email": "ednaodonnell@kangle.com",
     "Money": 214,
     "Created": "2020-04-22",
@@ -25,8 +25,8 @@
   },
   {
     "UserName": "Merrill",
-    "First_Name": "Wise",
-    "Last_Name": "Alford",
+    "FirstName": "Wise",
+    "LastName": "Alford",
     "Email": "jacquelynpage@atgen.com",
     "Money": 222,
     "Created": "2019-04-09",
@@ -37,8 +37,8 @@
   },
   {
     "UserName": "Heath",
-    "First_Name": "Adkins",
-    "Last_Name": "Brewer",
+    "FirstName": "Adkins",
+    "LastName": "Brewer",
     "Email": "muellermalone@lunchpod.com",
     "Money": 285,
     "Created": "2019-02-17",
@@ -49,8 +49,8 @@
   },
   {
     "UserName": "Frost",
-    "First_Name": "Hogan",
-    "Last_Name": "Hartman",
+    "FirstName": "Hogan",
+    "LastName": "Hartman",
     "Email": "wallacefloyd@zaggles.com",
     "Money": 352,
     "Created": "2019-03-26",

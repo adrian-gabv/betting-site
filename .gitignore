@@ -456,3 +456,4 @@ API/appsettings.json
 API/Data/Migrations
 ssl
 github-plan
+.claude/btw-chats.md

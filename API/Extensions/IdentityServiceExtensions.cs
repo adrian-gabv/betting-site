@@ -1,13 +1,8 @@
 using System.Text;
 using API.Data;
 using API.Entities;
-using API.Interfaces;
-using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
 namespace API.Extensions
@@ -31,18 +26,17 @@ namespace API.Extensions
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["TokenKey"])),
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+                            config["TokenKey"] ?? throw new InvalidOperationException("TokenKey is not configured"))),
                         ValidateIssuer = false,
                         ValidateAudience = false,
                     };
                 });
 
-        services.AddAuthorization(opt =>
-        {
-            opt.AddPolicy("AdminRole", policy => policy.RequireRole("Admin"));
-        });
+            services.AddAuthorizationBuilder()
+                .AddPolicy("AdminRole", policy => policy.RequireRole("Admin"));
 
-        return services;
+            return services;
         }
     }
 }

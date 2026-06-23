@@ -1,17 +1,12 @@
-using System;
 using API.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
-    public class ErrorController : BaseApiController
+    public class ErrorController(DataContext context) : BaseApiController
     {
-        private readonly DataContext _context;
-        public ErrorController(DataContext context)
-        {
-            _context = context;
-        }
+        private readonly DataContext _context = context;
 
         [Authorize]
         [HttpGet("auth")]
@@ -31,9 +26,9 @@ namespace API.Controllers
         [HttpGet("server-error")]
         public ActionResult<string> GetServerError()
         {
-                var error = _context.Users.Find(-1);
-                var errorReturn = error.ToString();
-                return errorReturn;         
+            var error = _context.Users.Find(-1);
+            var errorReturn = error!.ToString();
+            return errorReturn;
         }
 
         [HttpGet("bad-request")]

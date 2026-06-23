@@ -1,36 +1,21 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using API.Data;
 using API.DTOs;
 using API.Entities;
 using API.Extensions;
 using API.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
 {
     [Authorize]
-    public class UsersController : BaseApiController
+    public class UsersController(IUserRepository userRepository, IMapper mapper, IPhotoService photoService) : BaseApiController
     {
-        private readonly DataContext _context;
-        private readonly IUserRepository _userRepository;
-        private readonly IMapper _mapper;
-        private readonly IPhotoService _photoService;
-        public UsersController(IUserRepository userRepository, IMapper mapper, IPhotoService photoService)
-        {
-            _photoService = photoService;
-            _mapper = mapper;
-            _userRepository = userRepository;
-        }
+        private readonly IUserRepository _userRepository = userRepository;
+        private readonly IMapper _mapper = mapper;
+        private readonly IPhotoService _photoService = photoService;
 
         // api/users
-        [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers()
         {
@@ -42,26 +27,29 @@ namespace API.Controllers
         [HttpGet("{username}", Name = "GetUser")]
         public async Task<ActionResult<MemberDto>> GetUser(string username)
         {
-            return await _userRepository.GetMemberAsync(username);
+            var member = await _userRepository.GetMemberAsync(username);
+            if (member == null) return NotFound();
+            return member;
         }
 
         [HttpPut]
         public async Task<ActionResult> UpdateUser(MemberUpdateDto memberUpdateDto)
         {
             var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+            if (user == null) return NotFound();
 
             _mapper.Map(memberUpdateDto, user);
-            _userRepository.Update(user);
 
             if (await _userRepository.SaveAllAsync()) return NoContent();
 
             return BadRequest("Failed to update user");
         }
 
-        [HttpPost("addphoto")]
+        [HttpPost("add-photo")]
         public async Task<ActionResult<PhotoDto>> AddPhoto(IFormFile file)
         {
             var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+            if (user == null) return NotFound();
             var result = await _photoService.AddPhotoAsync(file);
 
             if (result.Error != null) return BadRequest(result.Error.Message);
@@ -72,21 +60,22 @@ namespace API.Controllers
                 PublicId = result.PublicId
             };
 
-            if (user.Avatar != null)
+            if (user.Avatar?.PublicId != null)
                 await _photoService.DeletePhotoAsync(user.Avatar.PublicId);
 
             user.Avatar = photo;
 
             if (await _userRepository.SaveAllAsync())
                 return CreatedAtRoute("GetUser", new {username = user.UserName}, _mapper.Map<PhotoDto>(photo));
-            
+
             return BadRequest("Error uploading");
         }
 
-        [HttpDelete("deletephoto/{photoId}")]
-        public async Task<ActionResult> DeletePhoto(int photoId)
+        [HttpDelete("delete-photo")]
+        public async Task<ActionResult> DeletePhoto()
         {
             var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+            if (user == null) return NotFound();
             var photo = user.Avatar;
 
             if (photo == null) return NotFound();
@@ -99,7 +88,7 @@ namespace API.Controllers
             user.Avatar = null;
             if (await _userRepository.SaveAllAsync()) return Ok();
 
-            return BadRequest("Failed to delete avatar");
+            return BadRequest("Failed to delete avatar!");
         }
     }
 }

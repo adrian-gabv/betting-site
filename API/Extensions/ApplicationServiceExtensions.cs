@@ -2,9 +2,6 @@ using API.Data;
 using API.Interfaces;
 using API.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using AutoMapper;
 using API.Helpers;
 
 namespace API.Extensions
@@ -14,12 +11,14 @@ namespace API.Extensions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
         {
             services.Configure<CloudinarySettings>(config.GetSection("CloudinarySettings"));
+            services.Configure<JwtSettings>(config.GetSection("JwtSettings"));
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IPhotoService, PhotoService>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddAutoMapper(config => config.AddMaps(typeof(AutoMapperProfiles).Assembly));
             services.AddDbContext<DataContext>(options => {
-                options.UseNpgsql(config.GetConnectionString("DefaultConnection"));
+                options.UseNpgsql(config.GetConnectionString("DefaultConnection"))
+                .UseSnakeCaseNamingConvention();
             });
 
             return services;
