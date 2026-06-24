@@ -4,8 +4,19 @@ Companion to `PLAN.md` → **Phase 1**. This document is the *how*; `PLAN.md` is
 It does **not** change the Phase 1 goals (CQRS, `Result<T>`, FluentValidation, `IExceptionHandler`) —
 it sequences them into reviewable steps and resolves the real-world decisions the move forces.
 
-**Status:** Planning — nothing implemented yet.
-**Prerequisite:** Phase 0 (build baseline) green — `dotnet build` + `dotnet run` succeed, migrations apply.
+The five "decisions this refactor forces" (D1–D5, §4) **are this project's first ADRs**
+(ADR 0001–0005 in `PLAN.md` → *Architecture Decision Log*). Record the chosen option there once locked.
+
+Adjacent Phase-1 items that `PLAN.md` now folds in but that don't change the mechanics below:
+**API versioning** (`Asp.Versioning`), **OpenAPI-first** contracts, and **modular domain folders**
+(Identity/Users/Media/Betting) so the future module boundaries are visible before any split. Layer these
+on after 1B is green.
+
+**Status:** Planning — clean-architecture split not started yet (`api/` is still one `Microsoft.NET.Sdk.Web` project).
+**Prerequisite:** Phase 0 (build baseline) is largely green — .NET 10 + modern packages done, `Program.cs`
+minimal hosting in place (no `Startup.cs`), security hardening landed (commit `7407ef5`). A `BettingSite.sln`
+already exists wrapping only `api/`; step 1 below **adjusts** it rather than creating it from scratch.
+Re-confirm `dotnet build`/`dotnet run` succeed and migrations apply before starting 1A.
 
 ---
 
@@ -51,16 +62,17 @@ API/                              API.csproj  (Microsoft.NET.Sdk.Web, net10.0)
 ```
 BettingSite.sln
 ├── src/
-│   ├── BettingSite.Domain/            # entities + contracts. Almost no dependencies.
-│   │   ├── Entities/                  AppUser, AppRole, AppUserRole, Photo
-│   │   └── Interfaces/                IUserRepository, ITokenService, IPhotoService
+│   ├── BettingSite.Domain/            # framework-free POCOs by bounded context (ADR-0001/0002). NO ASP.NET Identity.
+│   │   ├── Betting/                   Player/Member (linked to identity by UserId), Wallet, Money (value object),
+│   │   │                              Photo/avatar, domain events; domain services (settlement/payout) later
+│   │   └── Common/                    base Entity / ValueObject; repository contracts e.g. IPlayerRepository
 │   │
 │   ├── BettingSite.Application/       # the brain. Use-case-per-file (CQRS).
 │   │   ├── Common/
 │   │   │   ├── Result.cs              Result / Result<T> / Error
 │   │   │   └── Behaviors/             ValidationBehavior (MediatR pipeline)
 │   │   ├── Mappings/                  AutoMapperProfiles
-│   │   ├── Abstractions/              IIdentityService, ICurrentUser  (wrap Identity/HTTP)
+│   │   ├── Abstractions/              IIdentityService (port → Identity ctx), ICurrentUser, IPhotoStorage, ITokenIssuer
 │   │   └── Features/                  vertical slices, grouped by use case
 │   │       ├── Account/
 │   │       │   ├── Register/          RegisterCommand + Handler + Validator
@@ -74,10 +86,10 @@ BettingSite.sln
 │   ├── BettingSite.Infrastructure/    # the "how". Implements Domain/Application contracts.
 │   │   ├── Persistence/
 │   │   │   ├── DataContext.cs
-│   │   │   ├── Configurations/        AppUserConfig, PhotoConfig, ... (IEntityTypeConfiguration)
-│   │   │   ├── Repositories/          UserRepository
+│   │   │   ├── Configurations/        PlayerConfig, WalletConfig, PhotoConfig, ApplicationUserConfig (IEntityTypeConfiguration)
+│   │   │   ├── Repositories/          PlayerRepository
 │   │   │   └── Seed/                  Seed.cs, UserSeedData.json
-│   │   ├── Identity/                  IdentityService (wraps UserManager/SignInManager)
+│   │   ├── Identity/                  Identity CONTEXT adapter: ApplicationUser:IdentityUser<int>, AppRole, IIdentityService impl
 │   │   ├── Services/                  JwtTokenService, CloudinaryPhotoService
 │   │   ├── Settings/                  CloudinarySettings, JwtSettings
 │   │   └── DependencyInjection.cs     AddInfrastructure(config)
@@ -106,7 +118,7 @@ BettingSite.sln
          └──────► Domain ◄──┘
 ```
 
-- **Domain** references nothing in the solution (one external exception below).
+- **Domain** references nothing — no solution projects and **no framework** (pure POCOs). See [[ADR-0002]].
 - **Application** references **Domain** only.
 - **Infrastructure** references **Application** (and Domain transitively).
 - **Api** references **Application** + **Infrastructure** (Infrastructure only so `Program.cs` can wire DI —
@@ -116,38 +128,29 @@ BettingSite.sln
 
 ---
 
-## 4. The decisions this refactor forces
+## 4. The decisions this refactor forces (ADR 0001–0005)
 
-These are the parts that are genuinely "it depends." Each has a recommendation; flag any you disagree with
-before we start coding.
+These are the parts that are genuinely "it depends." **D1 and D2 are now decided** (see the ADRs). D3–D5
+remain open *proposals* to confirm before coding — they are **not** settled, and the recommendations below
+are input, not decisions.
 
-### D1 — ASP.NET Identity makes Domain *not* dependency-free  ⚠️ most important
+### D1 — Where does ASP.NET Identity live? → DECIDED ([[ADR-0002]])
 
-`AppUser : IdentityUser<int>`, `AppRole : IdentityRole<int>`, `AppUserRole : IdentityUserRole<int>`.
-Those base types live in `Microsoft.Extensions.Identity.Stores`. So a Domain project that holds these
-entities **must reference that package** — it cannot be a pure POCO library.
+**Decision: authentication is its own bounded context; the betting Domain is framework-free.** `IdentityUser`
+is *not* a domain entity. `ApplicationUser : IdentityUser<int>`, `AppRole`, credentials and tokens live in
+the **Identity context's Infrastructure**. The betting Domain holds a pure `Player`/`Member` POCO linked to
+identity by a shared `UserId`. The old "Domain must reference `Identity.Stores`" problem disappears because
+nothing in Domain derives from Identity. *(Option 1 — Identity in Domain — is rejected.)*
 
-| Option | What it means | Cost |
-|--------|---------------|------|
-| **D1-a (recommended)** | Domain references `Microsoft.Extensions.Identity.Stores`. Entities stay exactly as they are. | One "impure" dependency in Domain. Universally accepted for Identity apps. |
-| D1-b (purist) | Domain holds plain POCOs; separate `IdentityUser`-derived persistence entities live in Infrastructure; map between them. | A lot of boilerplate + a mapping layer, for little benefit on a solo learning project. |
+### D2 — How do use cases perform identity/auth operations? → PROPOSED ([[ADR-0003]])
 
-**Recommendation: D1-a.** Note the compromise in a comment and move on. Revisit only if Identity is ever
-swapped out (it won't be here).
-
-### D2 — How do CQRS handlers talk to Identity?
-
-`UserManager`/`SignInManager` are Identity services. Handlers in Application can't reference them without
-Application taking an Identity dependency.
-
-| Option | What it means |
-|--------|---------------|
-| **D2-a (recommended)** | Define `IIdentityService` in `Application/Abstractions` (CreateUser, CheckPassword, AddToRole, FindByName…). Implement it in `Infrastructure/Identity` wrapping `UserManager`/`SignInManager`. Handlers depend on the interface. | 
-| D2-b | Handlers depend on `UserManager<AppUser>` directly; Application references the Identity package. | 
-
-**Recommendation: D2-a.** It's the single best clean-architecture exercise in this whole phase — it's
-exactly the abstraction Identity *doesn't* give you out of the box, and it makes handlers unit-testable
-with a fake. `ITokenService` already proves you know the pattern; this extends it.
+Given D1, handlers must **not** touch `UserManager`/`SignInManager` directly. Proposed: a **port/adapter** at
+the Identity-context boundary — an intent-revealing `IIdentityService`/`IAuthenticationService` in
+`Application/Abstractions`, implemented by an ASP.NET Identity adapter in `Infrastructure/Identity`; handlers
+depend on the interface and stay unit-testable with a fake. Registration **orchestrates both contexts**
+(create auth user → emit `UserRegistered` → create `Player`). This is a *port*, **not** a Domain Service —
+Domain Services are reserved for betting/wallet logic (settlement, payouts). Confirm before building the
+Account slices.
 
 ### D3 — `Result<T>` vs exceptions (PLAN.md asks for `Result<T>`)
 
@@ -184,8 +187,11 @@ reads `JwtSettings`, and have `Program.cs` call that one method. Keeps `Program.
 
 | Current | New project / folder | Change |
 |---|---|---|
-| `Entities/AppUser,AppRole,AppUserRole,Photo` | `Domain/Entities/` | move + file-scoped namespace |
-| `Interfaces/IUserRepository,ITokenService,IPhotoService` | `Domain/Interfaces/` | move |
+| `Entities/AppUser,AppRole,AppUserRole` | `Infrastructure/Identity/` | become `ApplicationUser:IdentityUser<int>` etc. — Identity context only ([[ADR-0002]]); **not** in Domain |
+| `Entities/Photo` | `Domain/Betting/` | move into the framework-free betting Domain |
+| *(new)* | `Domain/Betting/Player.cs` | pure POCO aggregate linked to identity by `UserId` (the domain "user"; replaces `AppUser` in the model). Move `Money` → a `Wallet`/`Money` value object |
+| `Interfaces/IUserRepository` | `Domain/Common/` → `IPlayerRepository` | repository contract stays in Domain |
+| `Interfaces/ITokenService,IPhotoService` | `Application/Abstractions/` | become app ports (token issuer, photo storage) implemented in Infrastructure |
 | `DTOs/LoginDto,RegisterDto` | `Application/Features/Account/...` | move next to their slice |
 | `DTOs/UserDto` | `Application/Features/Account/` | move (login/register response) |
 | `DTOs/MemberDto,MemberUpdateDto,PhotoDto` | `Application/Features/Members/...` | move next to their slice |
@@ -204,18 +210,22 @@ reads `JwtSettings`, and have `Program.cs` call that one method. Keeps `Program.
 | `Controllers/*` | `Api/Controllers/` | move in 1A; thin out in 1B |
 | `Program.cs` | `Api/Program.cs` | rewrite composition root |
 | *(new)* | `Application/Common/Result.cs` | `Result`/`Result<T>`/`Error` |
-| *(new)* | `Application/Abstractions/IIdentityService` | D2-a |
+| *(new)* | `Application/Abstractions/IIdentityService` | identity port at the context boundary ([[ADR-0003]]) |
 | *(new)* | `Application/Common/Behaviors/ValidationBehavior` | FluentValidation in MediatR pipeline |
 
 ### NuGet ownership after the split
 
-- **Domain:** `Microsoft.Extensions.Identity.Stores` (D1-a) — nothing else.
+- **Domain:** *no external packages* — pure POCOs ([[ADR-0002]]). (Identity packages live in Infrastructure.)
 - **Application:** `MediatR`, `FluentValidation`, `FluentValidation.DependencyInjectionExtensions`, `AutoMapper`.
 - **Infrastructure:** `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Design`,
   `Npgsql.EntityFrameworkCore.PostgreSQL`, `EFCore.NamingConventions`,
   `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.AspNetCore.Authentication.JwtBearer`,
   `CloudinaryDotNet`.
-- **Api:** `Microsoft.AspNetCore.OpenApi` (it's `Sdk.Web`; no EF/Cloudinary refs).
+- **Api:** `Microsoft.AspNetCore.OpenApi` + `Asp.Versioning.Mvc.ApiExplorer` (it's `Sdk.Web`; no EF/Cloudinary refs).
+
+> Pin each moved package to the version already in `api/API.csproj` (the .NET 10 train: EF Core / Identity /
+> JwtBearer `10.0.x`, Npgsql `10.0.1`, `EFCore.NamingConventions` `10.0.1`, AutoMapper `16.x`,
+> CloudinaryDotNet `1.28.0`, OpenApi `10.0.x`). Don't re-resolve versions during the move — keep 1A behavior-identical.
 
 > EF migrations: `Microsoft.EntityFrameworkCore.Design` moves to Infrastructure, but the design-time tools
 > need a startup project. Commands become:
@@ -234,8 +244,12 @@ if 1B breaks something you want to know it wasn't the file shuffle.
 
 Goal: identical runtime behavior, four projects instead of one. Controllers still use `UserManager` etc.
 
-1. Create `BettingSite.sln`; create the four `src/` projects + three `tests/` skeletons; set project references per §3.
-2. Move **Domain** (entities, interfaces). File-scoped namespaces → `BettingSite.Domain.*`. Build.
+1. Use the existing `BettingSite.sln` (currently wraps only `api/`); create the four `src/` projects + three `tests/` skeletons, add them to the sln, and set project references per §3.
+2. **Split entities by context ([[ADR-0002]]):** ASP.NET Identity entities → `Infrastructure/Identity`
+   (`AppUser`→`ApplicationUser`, `AppRole`, `AppUserRole`); the betting **Domain** gets `Photo` + value
+   objects, file-scoped `BettingSite.Domain.*`. **Keep `ApplicationUser` as the only user representation for
+   now** — introducing a separate `Player` aggregate is a deliberate 1B remodel (1B step 4 below), *not* part
+   of this mechanical move, so 1A stays behavior-preserving and low-risk. Build.
 3. Move **DTOs + AutoMapper** into Application (flat for now; reshape into slices in 1B). Build.
 4. Move **Infrastructure** (DataContext + relationship config, repository, services renamed, settings, seed).
    Write `Infrastructure/DependencyInjection.cs` consolidating the two old extension classes (incl. JWT — D5). Build.
@@ -251,17 +265,23 @@ Introduce one concept at a time, each its own commit, app runnable after each.
 
 1. **`Result<T>` + `Error`** in `Application/Common`. (no behavior change yet)
 2. **MediatR**: register in Application DI; add the package; no handlers yet.
-3. **First vertical slice — Register**: `RegisterCommand` + handler returning `Result<UserDto>`, using
-   `IIdentityService` (D2-a). `AccountController.Register` becomes a 3-line dispatch. Run + test.
-4. **Login** slice (`LoginQuery`), then **GetMembers / GetMember / UpdateMember**. Delete `UserRepository`
-   methods as handlers absorb them (or keep the repo behind the handler — your call per slice).
-5. **FluentValidation**: validators for `RegisterCommand`, `LoginQuery`, `UpdateMemberCommand`; wire
+3. **First vertical slice — Register**: `RegisterCommand` + handler returning `Result<UserDto>`, using the
+   `IIdentityService` **port** ([[ADR-0003]], confirm first). `AccountController.Register` becomes a 3-line
+   dispatch. Run + test.
+4. **`Player` aggregate + cross-context link — the DDD remodel ([[ADR-0002]]):** add `Player` to
+   `Domain/Betting` keyed by `UserId`; move betting state *off* `ApplicationUser` (`Money` → a `Wallet`/`Money`
+   value object, names, activity, avatar); registration emits `UserRegistered` → a betting handler creates the
+   `Player`. Add the EF migration. Own commit; smoke-test register / login / profile. *(This is the real
+   modeling work, deliberately separated from the 1A file move.)*
+5. **Login** slice (`LoginQuery`), then **GetMembers / GetMember / UpdateMember** (now reading the `Player`).
+   Delete `UserRepository` methods as handlers absorb them (or keep the repo behind the handler — your call).
+6. **FluentValidation**: validators for `RegisterCommand`, `LoginQuery`, `UpdateMemberCommand`; wire
    `ValidationBehavior` into the MediatR pipeline so validation runs before every handler.
-6. **`GlobalExceptionHandler : IExceptionHandler`** + `AddProblemDetails()`; delete `ExceptionMiddleware`
-   and `ApiException` (D3).
-7. **EF audit**: move relationship config from `OnModelCreating` into `IEntityTypeConfiguration<>` classes;
+7. **`GlobalExceptionHandler : IExceptionHandler`** + `AddProblemDetails()`; delete `ExceptionMiddleware`
+   and `ApiException` (D3 — confirm first).
+8. **EF audit**: move relationship config from `OnModelCreating` into `IEntityTypeConfiguration<>` classes;
    confirm snake_case still applied; decide D4.
-8. **Checkpoint:** full smoke test again; controllers contain no business logic. Commit per slice.
+9. **Checkpoint:** full smoke test again; controllers contain no business logic. Commit per slice.
 
 > Per `PLAN.md`, **tests come in Phase 2.** 1B leaves clean seams (handlers + `IIdentityService`) so that
 > Phase 2 can unit-test handlers with fakes and integration-test repositories with TestContainers.
@@ -275,8 +295,9 @@ Introduce one concept at a time, each its own commit, app runnable after each.
 - [ ] Controllers contain **no** business logic — each action dispatches a MediatR request and maps `Result` → HTTP.
 - [ ] Expected failures flow through `Result<T>`; unexpected ones through `IExceptionHandler`/`ProblemDetails`.
 - [ ] Validators run via the MediatR pipeline for all commands/queries that take input.
-- [ ] No `Microsoft.EntityFrameworkCore` / `CloudinaryDotNet` reference reachable from a controller.
-- [ ] `ARCHITECTURE_REFACTOR.md` decisions (D1–D5) recorded with the option chosen.
+- [ ] **Domain has no framework dependencies** — no EF, no ASP.NET Identity, no Cloudinary ([[ADR-0001]]/[[ADR-0002]]).
+- [ ] No `Microsoft.EntityFrameworkCore` / `CloudinaryDotNet` / ASP.NET Identity reference reachable from a controller.
+- [ ] Decisions recorded as ADRs in `.claude/adr/` (0001/0002 accepted; 0003 + D3–D5 confirmed before the slices that need them).
 
 ---
 
@@ -289,11 +310,11 @@ Work happens on a branch with a commit per step (§6), so any step is independen
 
 ## 9. Open decisions to confirm before coding
 
-| # | Decision | Recommendation |
-|---|----------|----------------|
-| D1 | Identity coupling in Domain | **D1-a**: Domain references `Identity.Stores`; entities unchanged |
-| D2 | Handlers ↔ Identity | **D2-a**: `IIdentityService` abstraction in Application, impl in Infrastructure |
-| D3 | Errors | `Result<T>` for business outcomes + `IExceptionHandler` for the unexpected |
-| D4 | `Photo` mapping | Keep as separate entity; revisit if it stays single-avatar |
-| D5 | JWT validation wiring | In `AddInfrastructure(config)`; `Program.cs` stays a composition root |
-| — | Folder convention | `Features/<UseCase>/` vertical slices (vs. tech-folders `Commands/`, `Queries/`). Recommended: vertical slices. |
+| # | Decision | Status |
+|---|----------|--------|
+| D1 | Where ASP.NET Identity lives | **Decided ([[ADR-0001]]/[[ADR-0002]])**: auth is its own bounded context; Domain framework-free; no Identity in Domain |
+| D2 | How use cases reach identity/auth | **Proposed ([[ADR-0003]])**: port/adapter at the context boundary (not a Domain Service) |
+| D3 | Errors | *Open proposal*: `Result<T>` for business outcomes + `IExceptionHandler` for the unexpected |
+| D4 | `Photo`/avatar mapping | *Open proposal*: keep a separate entity; revisit if it stays single-avatar |
+| D5 | JWT validation wiring + token/refresh | *Open proposal*: in `AddInfrastructure(config)`; also fix issuer/audience validation + add refresh tokens (PLAN Phase 0 security) |
+| — | Folder convention | *Open proposal*: `Features/<UseCase>/` vertical slices (vs. tech-folders `Commands/`, `Queries/`) |
