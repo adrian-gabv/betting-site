@@ -457,3 +457,10 @@ API/Data/Migrations
 ssl
 github-plan
 .claude/btw-chats.md
+
+# Local secrets and environment
+.env
+
+# Uploaded photos served as static files
+API/wwwroot/uploads/*
+!API/wwwroot/uploads/.gitkeep

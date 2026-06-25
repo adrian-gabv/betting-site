@@ -27,7 +27,7 @@ namespace API.Extensions
                     {
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                            config["TokenKey"] ?? throw new InvalidOperationException("TokenKey is not configured"))),
+                            config["JwtSettings:TokenKey"] ?? throw new InvalidOperationException("JwtSettings:TokenKey is not configured"))),
                         ValidateIssuer = false,
                         ValidateAudience = false,
                     };

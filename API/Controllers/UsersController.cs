@@ -52,11 +52,11 @@ namespace API.Controllers
             if (user == null) return NotFound();
             var result = await _photoService.AddPhotoAsync(file);
 
-            if (result.Error != null) return BadRequest(result.Error.Message);
+            if (result.Error != null) return BadRequest(result.Error);
 
             var photo = new Photo
             {
-                Url = result.SecureUrl.AbsoluteUri,
+                Url = result.Url!,
                 PublicId = result.PublicId
             };
 
@@ -82,7 +82,7 @@ namespace API.Controllers
             if (photo.PublicId != null)
             {
                 var result = await _photoService.DeletePhotoAsync(photo.PublicId);
-                if (result.Error != null) return BadRequest(result.Error.Message);
+                if (result.Error != null) return BadRequest(result.Error);
             }
 
             user.Avatar = null;

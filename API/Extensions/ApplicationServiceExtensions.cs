@@ -10,10 +10,10 @@ namespace API.Extensions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
         {
-            services.Configure<CloudinarySettings>(config.GetSection("CloudinarySettings"));
             services.Configure<JwtSettings>(config.GetSection("JwtSettings"));
+            services.AddHttpContextAccessor();
             services.AddScoped<ITokenService, TokenService>();
-            services.AddScoped<IPhotoService, PhotoService>();
+            services.AddScoped<IPhotoService, LocalPhotoService>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddAutoMapper(config => config.AddMaps(typeof(AutoMapperProfiles).Assembly));
             services.AddDbContext<DataContext>(options => {
