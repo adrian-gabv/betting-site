@@ -133,8 +133,8 @@ Staged so there's always a coherent thing to demo, even if later phases pause.
 ### Server
 - [x] Collapse `Startup.cs` → top-level `Program.cs` (.NET minimal hosting) — *done; no `Startup.cs` present.*
 - [x] Move backend to .NET 10 and align all NuGet packages to current stable — *done (commit 015a9ae).*
-- [ ] Fix any remaining .NET 10 warnings/deprecations.
-- [ ] Verify `dotnet build` and `dotnet run` succeed.
+- [x] Fix any remaining .NET 10 warnings/deprecations.
+- [x] Verify `dotnet build` and `dotnet run` succeed.
 - [ ] Confirm EF migrations apply cleanly against a local Postgres.
 
 ### Client
