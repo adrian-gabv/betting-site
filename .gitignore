@@ -452,14 +452,17 @@ $RECYCLE.BIN/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-API/appsettings.json
-API/Data/Migrations
 ssl
 github-plan
 .claude/btw-chats.md
 
 # Local secrets and environment
 .env
+.env.local
+
+# Angular build cache
+client/.angular/
+client-old/.angular/
 
 # Uploaded photos served as static files
 API/wwwroot/uploads/*

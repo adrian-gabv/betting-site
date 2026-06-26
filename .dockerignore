@@ -1,0 +1,7 @@
+API/bin/
+API/obj/
+client/
+client-old/
+.git/
+.env
+.env.local

@@ -135,7 +135,7 @@ Staged so there's always a coherent thing to demo, even if later phases pause.
 - [x] Move backend to .NET 10 and align all NuGet packages to current stable — *done (commit 015a9ae).*
 - [x] Fix any remaining .NET 10 warnings/deprecations.
 - [x] Verify `dotnet build` and `dotnet run` succeed.
-- [ ] Confirm EF migrations apply cleanly against a local Postgres.
+- [x] Confirm EF migrations apply cleanly against a local Postgres — *done; `InitialCreate` applied via `dotnet ef database update`.*
 
 ### Client
 - [x] New Angular 21 client scaffolded; `client-old/` kept as the feature-migration reference — *done.*
@@ -144,12 +144,12 @@ Staged so there's always a coherent thing to demo, even if later phases pause.
 - [ ] Angular dev proxy to `https://localhost:5001` configured.
 
 ### Infrastructure
-- [ ] `docker-compose.yml` for local dev: API + PostgreSQL (no manual Postgres install needed).
-- [ ] `.env.example` with all required config keys documented.
-- [ ] Confirm secrets strategy: `dotnet user-secrets` for API, `.env.local` for client.
+- [x] `docker-compose.yml` for local dev: API + PostgreSQL (no manual Postgres install needed).
+- [x] `.env.example` with all required config keys documented.
+- [x] Confirm secrets strategy: `dotnet user-secrets` for API, `.env.local` for client.
 
 ### Security & dependency baseline *(largely landed in commit `7407ef5` — treat as a verification checklist)*
-- [ ] No hardcoded secrets in source; **rotate** any previously committed credentials and **scrub git history**.
+- [x] No hardcoded secrets in source; **rotate** any previously committed credentials and **scrub git history**.
 - [ ] JWT **issuer / audience / lifetime** validation enforced; short access-token lifetime.
 - [ ] **Refresh-token** flow + token **revocation** support.
 - [ ] All admin/privileged endpoints have correct **role-based authorization** coverage.

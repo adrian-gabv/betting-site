@@ -23,8 +23,10 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<DataContext>();
         var userManager = services.GetRequiredService<UserManager<AppUser>>();
         var roleManager = services.GetRequiredService<RoleManager<AppRole>>();
-        await context.Database.MigrateAsync();
-        await Seed.SeedUsers(userManager, roleManager);
+        if (app.Configuration.GetValue<bool>("AutoMigrateOnStartup"))
+            await context.Database.MigrateAsync();
+        await Seed.SeedRoles(roleManager);
+        await Seed.SeedUsers(userManager, app.Configuration);
     }
     catch (Exception ex)
     {
