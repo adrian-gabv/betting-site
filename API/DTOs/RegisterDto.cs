@@ -6,7 +6,7 @@ namespace API.DTOs
     {
         public required string Username { get; set; }
 
-        [StringLength(15, MinimumLength = 6)]
+        [StringLength(64, MinimumLength = 8)]
         public required string Password { get; set; }
         public required string FirstName { get; set; }
         public required string LastName { get; set; }

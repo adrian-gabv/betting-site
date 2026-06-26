@@ -24,6 +24,8 @@ namespace API.Data
 
             var adminUsername = config["SeedSettings:AdminUsername"]
                 ?? throw new InvalidOperationException("SeedSettings:AdminUsername is not configured");
+            var adminEmail = config["SeedSettings:AdminEmail"]
+                ?? throw new InvalidOperationException("SeedSettings:AdminEmail is not configured");
             var adminPassword = config["SeedSettings:AdminPassword"]
                 ?? throw new InvalidOperationException("SeedSettings:AdminPassword is not configured");
             var defaultUserPassword = config["SeedSettings:DefaultUserPassword"]
@@ -39,7 +41,7 @@ namespace API.Data
                 await userManager.AddToRoleAsync(user, "User");
             }
 
-            var admin = new AppUser { UserName = adminUsername };
+            var admin = new AppUser { UserName = adminUsername, Email = adminEmail };
             await userManager.CreateAsync(admin, adminPassword);
             await userManager.AddToRoleAsync(admin, "Admin");
         }

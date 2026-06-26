@@ -28,6 +28,10 @@ Personal learning sandbox — not production. Learning over shipping; every arch
 
 Photos are served from local storage (`LocalPhotoService`). Cloudinary integration is deferred to a later phase — do not add it back.
 
+## Code style
+
+- **No useless comments.** Don't narrate what the code already says (`// inject service`, `// secret`, `// short-lived token`). Let names carry meaning. Comment only the non-obvious *why* — a workaround, a spec/RFC reference, a deliberate trade-off — never the *what*.
+
 ## Angular conventions
 
 - Standalone components only — **do not** set `standalone: true` (it is the default in Angular v20+)

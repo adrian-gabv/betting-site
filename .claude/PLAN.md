@@ -148,15 +148,17 @@ Staged so there's always a coherent thing to demo, even if later phases pause.
 - [x] `.env.example` with all required config keys documented.
 - [x] Confirm secrets strategy: `dotnet user-secrets` for API, `.env.local` for client.
 
-### Security & dependency baseline *(largely landed in commit `7407ef5` — treat as a verification checklist)*
-- [x] No hardcoded secrets in source; **rotate** any previously committed credentials and **scrub git history**.
-- [ ] JWT **issuer / audience / lifetime** validation enforced; short access-token lifetime.
-- [ ] **Refresh-token** flow + token **revocation** support.
-- [ ] All admin/privileged endpoints have correct **role-based authorization** coverage.
-- [ ] DTO **validation** rules with consistent validation responses (formalized via FluentValidation in Phase 1).
-- [ ] Image upload **type/size validation** + safer upload handling (Cloudinary).
-- [ ] **Password policy** strengthened (length/complexity/lockout).
-- [ ] `dotnet`/`npm` **audit gates** wired so high/critical vulns fail the build (CI in Phase 5).
+### Security & dependency baseline *(Phase 0 scope = obvious-vuln hygiene; deeper auth hardening deferred)*
+- [x] No hardcoded secrets in source; previously committed credentials **rotated**. History scrub skipped — repo is already public and the values are dead, so it buys nothing.
+- [x] JWT **issuer/audience/lifetime** validation enforced (`IdentityServiceExtensions`, `ClockSkew=30s`). Lifetime is configurable (`JwtSettings:AccessTokenExpirationMinutes`, 8h dev default); a short lifetime ships with refresh tokens.
+- [ ] **Refresh-token** flow + revocation → **deferred to the auth-hardening pass** (OAuth2/OIDC); revocation needs server state, so it rides with the OAuth model, not Phase 0. See Backlog.
+- [x] Admin/privileged endpoints have **role-based authz** (`AdminController` AdminRole policy; `UsersController` `[Authorize]`; register/login anonymous). Re-audit as the surface grows.
+- [ ] DTO **validation** — partial (`[ApiController]` 400 `ProblemDetails`; `RegisterDto` annotated). FluentValidation lands in Phase 1.
+- [x] Image upload **type/size validation** (`PhotoServiceBase`: `image/*`, ≤5 MB, GUID filename). Magic-byte sniff is a later nice-to-have; Cloudinary deferred by design.
+- [x] **Password policy + lockout** (`IdentityServiceExtensions`: length 8, digit/upper/lower, unique email, lockout 5/15 min; login `lockoutOnFailure: true`). ⚠️ seed passwords in user-secrets must meet this; seed admin email via `SeedSettings:AdminEmail`.
+- [~] **Audit gates** — `/audit-deps` skill runs `dotnet`/`npm` audits locally; CI enforcement is Phase 5. (2026-06-26: .NET 0 vulns; `client` npm 11 high — client work.)
+- [x] **No SQL-injection surface** — all data access is EF Core LINQ (parameterized); no raw SQL.
+- [x] **Build hygiene** — `Directory.Build.props`: `TreatWarningsAsErrors=true`. API builds clean.
 
 ---
 
@@ -366,6 +368,7 @@ BettingSite.sln
 ---
 
 ## Backlog / Later
+- **Auth hardening (deferred from Phase 0):** migrate to OAuth2/OIDC, add refresh tokens + revocation and MFA; short access-token lifetime drops in here. Pairs with the Auth/Identity service split.
 - Performance testing: k6 or NBomber for API load tests.
 - Security review: OWASP checklist, dependency audit, penetration-testing basics.
 - SSR for Angular (explore `@angular/ssr` + hydration).

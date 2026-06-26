@@ -55,8 +55,9 @@ namespace API.Controllers
                 .SingleOrDefaultAsync(u => u.NormalizedUserName == normalizedUsername);
 
             if (user == null) return Unauthorized("Invalid username");
-            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
+            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, lockoutOnFailure: true);
 
+            if (result.IsLockedOut) return Unauthorized("Account locked due to multiple failed attempts. Try again later.");
             if (!result.Succeeded) return Unauthorized();
 
             return new UserDto
