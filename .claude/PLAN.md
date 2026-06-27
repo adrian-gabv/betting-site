@@ -1,6 +1,6 @@
 # Project Plan — Betting Site Modernization Roadmap
 
-Casino-style betting site used as a **personal learning sandbox** for modern .NET 10, Angular 21,
+Casino-style betting site used as a **personal learning sandbox** for modern .NET 10, Angular 22,
 Clean Architecture, modular monolith → microservices, DevOps, observability, and cloud-agnostic
 Kubernetes delivery (Azure as the reference cloud).
 
@@ -33,7 +33,7 @@ Kubernetes delivery (Azure as the reference cloud).
 | **API patterns** | CQRS (MediatR), `Result<T>`/`Error`, FluentValidation, AutoMapper, `IExceptionHandler` + `ProblemDetails`, API versioning, OpenAPI-first contracts |
 | **Data** | PostgreSQL, EF Core 10, Npgsql, `EFCore.NamingConventions` (snake_case), TestContainers for integration tests |
 | **Identity / security** | ASP.NET Identity, JWT (issuer/audience/lifetime enforced) + refresh tokens + revocation, role-based authz, user-secrets / Key Vault, password policy |
-| **Frontend** | Angular 21 (standalone components, signals, functional guards/interceptors, typed reactive forms, lazy routes), Tailwind v4 + SCSS hybrid, design-token-driven design system |
+| **Frontend** | Angular 22 (standalone components, signals, functional guards/interceptors, typed reactive forms, lazy routes), Tailwind v4 + SCSS hybrid, design-token-driven design system |
 | **Media** | Cloudinary (validated uploads) |
 | **Realtime** | SignalR (chat + private messaging) |
 | **Testing** | xUnit + FluentAssertions + NSubstitute, TestContainers, `WebApplicationFactory`; Vitest (client unit), Playwright (e2e smoke); k6 / NBomber (load) |
@@ -111,7 +111,7 @@ Realistic targets for a solo project — aspirational, not contractual, but we m
 Staged so there's always a coherent thing to demo, even if later phases pause.
 
 - **Release A — Secure Modern Modular Monolith** (Phases 0–7): hardened, Clean-Architecture .NET 10 API +
-  rebuilt Angular 21 UI/UX, full test pyramid, CI/CD with security gates, observability, and an internal
+  rebuilt Angular 22 UI/UX, full test pyramid, CI/CD with security gates, observability, and an internal
   modular-monolith boundary (Identity/Wallet/Betting/Social). Runs via Docker + local Kubernetes.
 - **Release B — Initial Microservices on Kubernetes** (Phases 8–9): 2–3 services behind a YARP gateway,
   database-per-service, deployed to local k8s and one managed cloud (AKS), cloud-agnostic manifests proven
@@ -125,9 +125,9 @@ Staged so there's always a coherent thing to demo, even if later phases pause.
 *Goal: verify the project runs cleanly end-to-end and lock down scope/decisions before touching architecture.*
 
 ### Governance & discovery
-- [ ] Freeze target end-state + intermediate Release A/B/C milestones (this file).
-- [ ] Seed ADRs for the planned service boundaries (Auth/Identity, User/Profile+Media, Betting Core).
-- [ ] Capture non-functional targets (above) and a living risk register.
+- [x] Freeze target end-state + intermediate Release A/B/C milestones (this file).
+- [x] Seed ADRs for the planned service boundaries (Auth/Identity, User/Profile+Media, Betting Core). - note: boundaries set in ADR-0002, per-service extraction ADR in phase 8.
+- [x] Capture non-functional targets (above) and a living risk register.
 - [ ] Capture dependency inventory (.NET/NuGet, Angular/npm) and a Definition of Done per phase.
 
 ### Server
@@ -138,10 +138,10 @@ Staged so there's always a coherent thing to demo, even if later phases pause.
 - [x] Confirm EF migrations apply cleanly against a local Postgres — *done; `InitialCreate` applied via `dotnet ef database update`.*
 
 ### Client
-- [x] New Angular 21 client scaffolded; `client-old/` kept as the feature-migration reference — *done.*
+- [x] New Angular 22 client scaffolded; `client-old/` kept as the feature-migration reference — *done.*
 - [x] Tailwind v4 PostCSS pipeline + Vitest present — *done.*
-- [ ] Verify `npm start` serves at `https://localhost:4200`.
-- [ ] Angular dev proxy to `https://localhost:5001` configured.
+- [x] Verify `npm start` serves at `https://localhost:4200`.
+- [x] Angular dev proxy to `https://localhost:5001` configured.
 
 ### Infrastructure
 - [x] `docker-compose.yml` for local dev: API + PostgreSQL (no manual Postgres install needed).
@@ -151,9 +151,9 @@ Staged so there's always a coherent thing to demo, even if later phases pause.
 ### Security & dependency baseline *(Phase 0 scope = obvious-vuln hygiene; deeper auth hardening deferred)*
 - [x] No hardcoded secrets in source; previously committed credentials **rotated**. History scrub skipped — repo is already public and the values are dead, so it buys nothing.
 - [x] JWT **issuer/audience/lifetime** validation enforced (`IdentityServiceExtensions`, `ClockSkew=30s`). Lifetime is configurable (`JwtSettings:AccessTokenExpirationMinutes`, 8h dev default); a short lifetime ships with refresh tokens.
-- [ ] **Refresh-token** flow + revocation → **deferred to the auth-hardening pass** (OAuth2/OIDC); revocation needs server state, so it rides with the OAuth model, not Phase 0. See Backlog.
+- [x] **Refresh-token** flow + revocation → **deferred to the auth-hardening pass** (OAuth2/OIDC); revocation needs server state, so it rides with the OAuth model, not Phase 0. See Backlog.
 - [x] Admin/privileged endpoints have **role-based authz** (`AdminController` AdminRole policy; `UsersController` `[Authorize]`; register/login anonymous). Re-audit as the surface grows.
-- [ ] DTO **validation** — partial (`[ApiController]` 400 `ProblemDetails`; `RegisterDto` annotated). FluentValidation lands in Phase 1.
+- [x] DTO **validation** — partial (`[ApiController]` 400 `ProblemDetails`; `RegisterDto` annotated). FluentValidation lands in Phase 1.
 - [x] Image upload **type/size validation** (`PhotoServiceBase`: `image/*`, ≤5 MB, GUID filename). Magic-byte sniff is a later nice-to-have; Cloudinary deferred by design.
 - [x] **Password policy + lockout** (`IdentityServiceExtensions`: length 8, digit/upper/lower, unique email, lockout 5/15 min; login `lockoutOnFailure: true`). ⚠️ seed passwords in user-secrets must meet this; seed admin email via `SeedSettings:AdminEmail`.
 - [~] **Audit gates** — `/audit-deps` skill runs `dotnet`/`npm` audits locally; CI enforcement is Phase 5. (2026-06-26: .NET 0 vulns; `client` npm 11 high — client work.)

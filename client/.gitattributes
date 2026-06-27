@@ -1,0 +1,2 @@
+# Husky hooks must stay LF or they fail under sh on Windows checkouts
+.husky/** text eol=lf

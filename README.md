@@ -1,8 +1,8 @@
 # Betting Site
 
-A casino-style betting platform with social features — friend system, private messaging, user profiles, and a global chat — built on **ASP.NET Core (.NET 10)** and **Angular 21**.
+A casino-style betting platform with social features — friend system, private messaging, user profiles, and a global chat — built on **ASP.NET Core (.NET 10)** and **Angular 22**.
 
-> **Status: active rewrite / learning sandbox.** The backend API is functional (auth, identity, roles, profiles, local photo uploads). PostgreSQL runs via Docker. The `client/` Angular 21 app is a fresh migration skeleton; the full feature implementation lives in `client-old/` and is being ported over. This repo is used to practice modern .NET, Angular, Clean Architecture, and DevOps — see [Roadmap](#️-roadmap).
+> **Status: active rewrite / learning sandbox.** The backend API is functional (auth, identity, roles, profiles, local photo uploads). PostgreSQL runs via Docker. The `client/` Angular 22 app is a fresh migration skeleton; the full feature implementation lives in `client-old/` and is being ported over. This repo is used to practice modern .NET, Angular, Clean Architecture, and DevOps — see [Roadmap](#️-roadmap).
 
 ---
 
@@ -15,7 +15,7 @@ A casino-style betting platform with social features — friend system, private 
 | **Auth** | ASP.NET Identity + JWT bearer tokens, role-based authorization |
 | **Mapping** | AutoMapper |
 | **Media** | Local file storage (Cloudinary deferred to a later phase) |
-| **Frontend** | Angular 21 (standalone components, signals), Tailwind CSS v4 |
+| **Frontend** | Angular 22 (standalone components, signals), Tailwind CSS v4 |
 | **Containers** | Docker + docker-compose; multi-stage Dockerfile for the API |
 | **Testing** | Vitest (client) |
 | **API docs** | OpenAPI (`Microsoft.AspNetCore.OpenApi`) |
@@ -36,7 +36,7 @@ betting-site/
 │   ├── Extensions/      DI wiring & ClaimsPrincipal helpers
 │   ├── Middleware/      Global exception handler
 │   └── Program.cs       Minimal hosting entry point
-├── client/              Angular 21 app (active migration target — skeleton)
+├── client/              Angular 22 app (active migration target — skeleton)
 ├── client-old/          Legacy Angular app (full feature reference)
 ├── Dockerfile           Multi-stage API image (SDK build → ASP.NET runtime)
 ├── docker-compose.yml   Local dev: PostgreSQL container
@@ -69,7 +69,7 @@ betting-site/
 
 ### Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Node.js](https://nodejs.org/) 20+ and npm (for the Angular client)
+- [Node.js](https://nodejs.org/) 24 LTS (≥ 24.15.0) and npm (for the Angular client)
 - [Docker](https://www.docker.com/) with docker-compose (for PostgreSQL)
 
 ### 1. Start PostgreSQL

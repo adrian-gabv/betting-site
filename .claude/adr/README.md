@@ -224,7 +224,7 @@ You don't need all of these. Go top-to-bottom; stop when you're unblocked and co
 
 The fastest way to learn ADRs is to write one where the decision *isn't* pre-chewed for you.
 
-1. **Write `0004-technology-stack.md` yourself.** The stack (.NET 10 + Angular 21 + PostgreSQL) was
+1. **Write `0004-technology-stack.md` yourself.** The stack (.NET 10 + Angular 22 + PostgreSQL) was
    partly *inherited* from the existing project — which makes it a great first ADR, because documenting an
    *inherited / constraint-driven* decision is its own real skill. Frame it honestly:
    - *Forces:* existing codebase already on this stack; solo learning project; want modern + employable +

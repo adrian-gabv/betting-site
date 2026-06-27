@@ -23,7 +23,7 @@ Personal learning sandbox — not production. Learning over shipping; every arch
 - `API/Extensions/IdentityServiceExtensions.cs` — Identity + JWT setup
 - `API/Data/DataContext.cs` — EF context (`IdentityDbContext`, snake_case naming via `EFCore.NamingConventions`)
 - `API/Entities/` — `AppUser` extends `IdentityUser<int>`; roles: `Admin`, `Moderator`, `User`
-- `client/` — active Angular 21 app (skeleton being migrated from `client-old/`)
+- `client/` — active Angular 22 app (skeleton being migrated from `client-old/`)
 - `client-old/` — legacy app; full feature reference only, do not add new code here
 
 Photos are served from local storage (`LocalPhotoService`). Cloudinary integration is deferred to a later phase — do not add it back.
