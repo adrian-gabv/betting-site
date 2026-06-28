@@ -4,5 +4,15 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="API/API.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/BettingSite.API/BettingSite.API.csproj" />
+    <Project Path="src/BettingSite.Application/BettingSite.Application.csproj" />
+    <Project Path="src/BettingSite.Domain/BettingSite.Domain.csproj" />
+    <Project Path="src/BettingSite.Infrastructure/BettingSite.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BettingSite.Application.Tests/BettingSite.Application.Tests.csproj" />
+    <Project Path="tests/BettingSite.Domain.Tests/BettingSite.Domain.Tests.csproj" />
+    <Project Path="tests/BettingSite.Infrastructure.Tests/BettingSite.Infrastructure.Tests.csproj" />
+  </Folder>
 </Solution>

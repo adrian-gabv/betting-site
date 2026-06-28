@@ -181,7 +181,7 @@ BettingSite.sln
 ```
 
 ### Server
-- [ ] Create solution structure with four projects above (see file-by-file move map in `ARCHITECTURE_REFACTOR.md`).
+- [x] Create solution structure with four projects above (see file-by-file move map in `ARCHITECTURE_REFACTOR.md`).
 - [ ] Model the betting **Domain as framework-free POCOs** — `Player`/`Member` (linked to identity by `UserId`), `Wallet` (with a `Money` value object), `Photo`/avatar, domain events. No ASP.NET Identity, no EF (per [[ADR-0001]], [[ADR-0002]]).
 - [ ] Keep ASP.NET Identity (`ApplicationUser : IdentityUser<int>`, roles, credentials, tokens) in the **Identity context's Infrastructure**, exposed to the app via an intent-revealing port ([[ADR-0003]], to confirm).
 - [ ] Introduce `Result<T>` / `Error` pattern (replace exception-driven flow for *expected* outcomes).
