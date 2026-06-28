@@ -166,13 +166,15 @@ Staged so there's always a coherent thing to demo, even if later phases pause.
 *Goal: move from tutorial-style fat controllers to a maintainable, testable structure with proper boundaries.*
 *Detailed step-by-step plan + decisions (D1–D5) live in `ARCHITECTURE_REFACTOR.md`.*
 
+> **Phase 1A checkpoint** ✅ (2026-06-28) — structural split complete. Four-project solution builds green, migrations apply, all endpoints verified. Phase 1B (CQRS/Result\<T>/FluentValidation/IExceptionHandler) is next.
+
 ### Architecture
 ```
-BettingSite.sln
+BettingSite.slnx
 ├── src/
 │   ├── BettingSite.Domain/          # Entities, Value Objects, Domain Events, Interfaces
 │   ├── BettingSite.Application/     # CQRS Commands/Queries (MediatR), Validators (FluentValidation), Result<T>
-│   ├── BettingSite.Infrastructure/  # EF Core, Repositories, JWT, Cloudinary, SignalR hubs
+│   ├── BettingSite.Infrastructure/  # EF Core, Repositories, JWT, local photo storage, SignalR hubs
 │   └── BettingSite.API/             # Controllers (or Minimal API endpoints), Middleware, DI wiring
 └── tests/
     ├── BettingSite.Domain.Tests/
@@ -182,15 +184,15 @@ BettingSite.sln
 
 ### Server
 - [x] Create solution structure with four projects above (see file-by-file move map in `ARCHITECTURE_REFACTOR.md`).
-- [ ] Model the betting **Domain as framework-free POCOs** — `Player`/`Member` (linked to identity by `UserId`), `Wallet` (with a `Money` value object), `Photo`/avatar, domain events. No ASP.NET Identity, no EF (per [[ADR-0001]], [[ADR-0002]]).
-- [ ] Keep ASP.NET Identity (`ApplicationUser : IdentityUser<int>`, roles, credentials, tokens) in the **Identity context's Infrastructure**, exposed to the app via an intent-revealing port ([[ADR-0003]], to confirm).
+- [~] Model the betting **Domain as framework-free POCOs** — `Player`/`Member` (linked to identity by `UserId`), `Wallet` (with a `Money` value object), `Photo`/avatar, domain events. No ASP.NET Identity, no EF (per [[ADR-0001]], [[ADR-0002]]). — `Photo` moved; `Player`/`Wallet`/`Money`/events are 1B.
+- [x] Keep ASP.NET Identity (`ApplicationUser : IdentityUser<int>`, roles, credentials, tokens) in the **Identity context's Infrastructure**. Intent-revealing port (`IIdentityService`) is 1B ([[ADR-0003]], to confirm).
 - [ ] Introduce `Result<T>` / `Error` pattern (replace exception-driven flow for *expected* outcomes).
 - [ ] Application layer: `RegisterCommand`, `LoginQuery`, `GetMembersQuery`, `UpdateMemberCommand` as first vertical slices; registration **orchestrates both contexts** (create auth user → emit event → create `Player`).
 - [ ] FluentValidation validators for all commands, wired via a MediatR `ValidationBehavior` pipeline.
-- [ ] Infrastructure: move EF `DataContext`, repositories, JWT/identity adapter, Cloudinary service behind their ports.
+- [x] Infrastructure: move EF `DataContext`, repositories, JWT/identity adapter behind their ports. (Cloudinary not applicable — local storage in use.)
 - [ ] API: thin controllers calling MediatR — one action per endpoint, no business logic.
-- [ ] Use primary constructors / modern DI patterns where they read cleanly.
-- [ ] Audit EF Core: snake_case naming convention, `IEntityTypeConfiguration<>` per entity, explicit relationship configs.
+- [x] Use primary constructors / modern DI patterns where they read cleanly.
+- [~] Audit EF Core: snake_case naming convention applied; `IEntityTypeConfiguration<>` per entity is 1B.
 - [ ] Global exception handling modernized: `IExceptionHandler` (.NET 8+) + `ProblemDetails`, replacing custom middleware.
 - [ ] **API versioning** strategy (`Asp.Versioning`) and **OpenAPI-first** contracts published from the API.
 - [ ] Reorganize into modular domain folders so module boundaries (Identity/Users/Media/Betting) are visible pre-split.

@@ -18,13 +18,21 @@ Personal learning sandbox — not production. Learning over shipping; every arch
 
 ## Architecture pointers
 
-- `API/Program.cs` — entry point; auto-applies EF migrations + seeds on startup via `MigrateAsync()`
-- `API/Extensions/ApplicationServiceExtensions.cs` — DI wiring (DB, repos, AutoMapper, services)
-- `API/Extensions/IdentityServiceExtensions.cs` — Identity + JWT setup
-- `API/Data/DataContext.cs` — EF context (`IdentityDbContext`, snake_case naming via `EFCore.NamingConventions`)
-- `API/Entities/` — `AppUser` extends `IdentityUser<int>`; roles: `Admin`, `Moderator`, `User`
-- `client/` — active Angular 22 app (skeleton being migrated from `client-old/`)
-- `client-old/` — legacy app; full feature reference only, do not add new code here
+The backend is a four-project Clean Architecture solution under `src/`:
+
+| Pointer | Path |
+|---|---|
+| Entry point (Program.cs) | `src/BettingSite.API/Program.cs` |
+| DI wiring (all services, Identity, JWT) | `src/BettingSite.Infrastructure/DependencyInjection.cs` |
+| EF context (`IdentityDbContext`, snake_case) | `src/BettingSite.Infrastructure/Persistence/DataContext.cs` |
+| Identity types (`ApplicationUser : IdentityUser<int>`, roles) | `src/BettingSite.Infrastructure/Identity/` |
+| Domain entities (`Photo`) | `src/BettingSite.Domain/Betting/` |
+| Application contracts (interfaces, DTOs) | `src/BettingSite.Application/Abstractions/`, `src/BettingSite.Application/DTOs/` |
+| Angular app (active) | `client/` |
+| Angular app (legacy reference) | `client-old/` — do not add new code here |
+
+Dependency rule (enforced by project references — the compiler rejects violations):
+`API → Application + Infrastructure → Application → Domain`
 
 Photos are served from local storage (`LocalPhotoService`). Cloudinary integration is deferred to a later phase — do not add it back.
 

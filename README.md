@@ -26,25 +26,36 @@ A casino-style betting platform with social features — friend system, private 
 
 ```
 betting-site/
-├── API/                 ASP.NET Core Web API (.NET 10) — the active backend
-│   ├── Controllers/     Account, Users, Admin, Error
-│   ├── Data/            DataContext, UserRepository, Seed + UserSeedData.json
-│   ├── DTOs/            Request/response objects
-│   ├── Entities/        AppUser, AppRole, AppUserRole, Photo
-│   ├── Migrations/      EF Core migrations
-│   ├── Services/        TokenService (JWT), LocalPhotoService
-│   ├── Extensions/      DI wiring & ClaimsPrincipal helpers
-│   ├── Middleware/      Global exception handler
-│   └── Program.cs       Minimal hosting entry point
+├── src/
+│   ├── BettingSite.Domain/          Pure business entities — no framework dependencies
+│   │   └── Betting/                 Photo (more domain types added in Phase 1B)
+│   ├── BettingSite.Application/     Use-case contracts: interfaces, DTOs
+│   │   ├── Abstractions/            ITokenService, IPhotoService, IUserRepository
+│   │   ├── Common/                  PhotoUploadResult, PhotoDeleteResult
+│   │   └── DTOs/                    Request/response shapes
+│   ├── BettingSite.Infrastructure/  Framework implementations
+│   │   ├── Identity/                ApplicationUser : IdentityUser<int>, AppRole, AppUserRole
+│   │   ├── Mappings/                AutoMapperProfiles
+│   │   ├── Persistence/             DataContext, UserRepository, Migrations, Seed
+│   │   ├── Services/                JwtTokenService, LocalPhotoService
+│   │   ├── Settings/                JwtSettings
+│   │   └── DependencyInjection.cs   AddInfrastructure() — single DI entry point
+│   └── BettingSite.API/             HTTP edge: controllers, middleware, Program.cs
+│       ├── Controllers/             Account, Users, Admin, Error (thin — dispatch only in 1B)
+│       ├── Errors/                  ApiException
+│       ├── Extensions/              ClaimsPrincipalExtensions
+│       └── Middleware/              ExceptionMiddleware
+├── tests/
+│   ├── BettingSite.Domain.Tests/
+│   ├── BettingSite.Application.Tests/
+│   └── BettingSite.Infrastructure.Tests/
 ├── client/              Angular 22 app (active migration target — skeleton)
 ├── client-old/          Legacy Angular app (full feature reference)
 ├── Dockerfile           Multi-stage API image (SDK build → ASP.NET runtime)
 ├── docker-compose.yml   Local dev: PostgreSQL container
 ├── .env.example         Required environment variable template
-└── BettingSite.slnx     Solution file
+└── BettingSite.slnx     Solution file (all src/ and tests/ projects)
 ```
-
-> A clean-architecture refactor (splitting `API/` into Domain / Application / Infrastructure / API projects) is planned. See [`.claude/ARCHITECTURE_REFACTOR.md`](.claude/ARCHITECTURE_REFACTOR.md).
 
 ---
 
@@ -84,19 +95,19 @@ docker-compose up -d
 
 ### 2. Configure API secrets
 
-The API reads sensitive config from user secrets in development (the `UserSecretsId` is already in `API/API.csproj`):
+The API reads sensitive config from user secrets in development (the `UserSecretsId` is already in `src/BettingSite.API/BettingSite.API.csproj`):
 
 ```bash
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
   "Host=localhost;Port=5432;Database=<POSTGRES_DB>;Username=<POSTGRES_USER>;Password=<POSTGRES_PASSWORD>" \
-  --project API
+  --project src/BettingSite.API
 
 dotnet user-secrets set "JwtSettings:TokenKey" \
   "a-long-random-signing-key-at-least-64-chars" \
-  --project API
+  --project src/BettingSite.API
 
-dotnet user-secrets set "SeedSettings:AdminPassword" "your-admin-password" --project API
-dotnet user-secrets set "SeedSettings:DefaultUserPassword" "your-dev-password" --project API
+dotnet user-secrets set "SeedSettings:AdminPassword" "your-admin-password" --project src/BettingSite.API
+dotnet user-secrets set "SeedSettings:DefaultUserPassword" "your-dev-password" --project src/BettingSite.API
 ```
 
 Replace `<POSTGRES_DB>`, `<POSTGRES_USER>`, `<POSTGRES_PASSWORD>` with the values you set in `.env`.
@@ -105,7 +116,7 @@ Replace `<POSTGRES_DB>`, `<POSTGRES_USER>`, `<POSTGRES_PASSWORD>` with the value
 
 ```bash
 # From the repo root — applies EF migrations and seeds data automatically on startup (dev only)
-dotnet watch run --project API/API.csproj
+dotnet watch run --project src/BettingSite.API
 ```
 
 The API listens on **https://localhost:5001** (and http://localhost:5000). In development, the OpenAPI document is served at `https://localhost:5001/openapi/v1.json`. CORS is configured to allow the Angular dev origin `https://localhost:4200`.
@@ -124,18 +135,18 @@ npm start        # ng serve → https://localhost:4200
 
 EF migrations are applied automatically on startup in development (`AutoMigrateOnStartup: true` in `appsettings.Development.json`). This is **disabled by default** (`false` in `appsettings.json`) to avoid race conditions in multi-instance deployments — run migrations as a separate step in production.
 
-On a fresh database, `Seed.cs` creates the `User`, `Moderator`, and `Admin` roles and loads sample users from `API/Data/UserSeedData.json`. Seeded users share a single dev password defined in that JSON file.
+On a fresh database, `Seed.cs` creates the `User`, `Moderator`, and `Admin` roles and loads sample users from `src/BettingSite.Infrastructure/Persistence/Seed/UserSeedData.json`. Seeded users share a single dev password defined in that JSON file.
 
 ### EF Core commands
 
 ```bash
 # Requires the dotnet-ef tool: dotnet tool install -g dotnet-ef
 
-# Add a migration
-dotnet ef migrations add <MigrationName> -p API
+# Add a migration (migrations live in Infrastructure; startup project is API)
+dotnet ef migrations add <MigrationName> -p src/BettingSite.Infrastructure -s src/BettingSite.API
 
 # Apply migrations manually (also runs automatically on startup in dev)
-dotnet ef database update -p API
+dotnet ef database update -p src/BettingSite.Infrastructure -s src/BettingSite.API
 ```
 
 ---

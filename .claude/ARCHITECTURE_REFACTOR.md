@@ -12,11 +12,9 @@ Adjacent Phase-1 items that `PLAN.md` now folds in but that don't change the mec
 (Identity/Users/Media/Betting) so the future module boundaries are visible before any split. Layer these
 on after 1B is green.
 
-**Status:** Planning — clean-architecture split not started yet (`api/` is still one `Microsoft.NET.Sdk.Web` project).
-**Prerequisite:** Phase 0 (build baseline) is largely green — .NET 10 + modern packages done, `Program.cs`
-minimal hosting in place (no `Startup.cs`), security hardening landed (commit `7407ef5`). A `BettingSite.sln`
-already exists wrapping only `api/`; step 1 below **adjusts** it rather than creating it from scratch.
-Re-confirm `dotnet build`/`dotnet run` succeed and migrations apply before starting 1A.
+**Status:** Phase 1A complete (2026-06-28). The four-project solution builds green; all endpoints verified. Phase 1B (patterns) is next.
+
+Previous state for reference: single `API/` project (`Microsoft.NET.Sdk.Web`). Split into `src/BettingSite.{Domain,Application,Infrastructure,API}` + three `tests/` skeletons. Old `API/` removed from solution.
 
 ---
 
