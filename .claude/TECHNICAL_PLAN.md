@@ -1,12 +1,13 @@
-# Project Plan — Betting Site Modernization Roadmap
+# Technical Plan — Betting Site Modernization Roadmap
 
 Casino-style betting site used as a **personal learning sandbox** for modern .NET 10, Angular 22,
 Clean Architecture, modular monolith → microservices, DevOps, observability, and cloud-agnostic
 Kubernetes delivery (Azure as the reference cloud).
 
-> This file is the master **what / why**. The detailed **how** for individual phases lives in
-> companion docs — currently `ARCHITECTURE_REFACTOR.md` for Phase 1. Write a new companion doc per
-> phase when the scope gets deep enough to need one.
+> This file is the master **what / why** for the *technical* work. The detailed **how** for individual
+> phases lives in companion docs — currently `ARCHITECTURE_REFACTOR.md` for Phase 1; write a new companion
+> doc per phase when the scope gets deep enough to need one. The product/business side — user-facing
+> features and their delivery status — lives in `FEATURE_PLAN.md`.
 
 ---
 
@@ -30,11 +31,11 @@ Kubernetes delivery (Azure as the reference cloud).
 | Area | Choices |
 |---|---|
 | **Backend runtime** | .NET 10, ASP.NET Core minimal hosting, C# primary constructors |
-| **API patterns** | CQRS (MediatR), `Result<T>`/`Error`, FluentValidation, AutoMapper, `IExceptionHandler` + `ProblemDetails`, API versioning, OpenAPI-first contracts |
+| **API patterns** | CQRS via a hand-rolled dispatcher + manual object mapping ([[ADR-0004]] — no MediatR/AutoMapper), `Result<T>`/`Error`, FluentValidation, `IExceptionHandler` + `ProblemDetails`, API versioning, OpenAPI-first contracts |
 | **Data** | PostgreSQL, EF Core 10, Npgsql, `EFCore.NamingConventions` (snake_case), TestContainers for integration tests |
 | **Identity / security** | ASP.NET Identity, JWT (issuer/audience/lifetime enforced) + refresh tokens + revocation, role-based authz, user-secrets / Key Vault, password policy |
 | **Frontend** | Angular 22 (standalone components, signals, functional guards/interceptors, typed reactive forms, lazy routes), Tailwind v4 + SCSS hybrid, design-token-driven design system |
-| **Media** | Cloudinary (validated uploads) |
+| **Media** | Local file storage (`LocalPhotoService`); Cloudinary (validated uploads) deferred to a later phase |
 | **Realtime** | SignalR (chat + private messaging) |
 | **Testing** | xUnit + FluentAssertions + NSubstitute, TestContainers, `WebApplicationFactory`; Vitest (client unit), Playwright (e2e smoke); k6 / NBomber (load) |
 | **Observability** | Serilog (structured logs + correlation IDs), OpenTelemetry (traces+metrics), Prometheus, Grafana, Jaeger, health/readiness/startup probes |
@@ -78,8 +79,8 @@ They live in `.claude/adr/` — read `.claude/adr/README.md` first (it's also a 
 to make and record architectural decisions), and copy `0000-template.md` for new ones. **No
 architecturally-significant change without an ADR.** ADRs are `Proposed` until *you* actually decide, then
 `Accepted`; they're immutable once accepted (supersede with a new one rather than editing). The planning
-docs (`PLAN.md`, `ARCHITECTURE_REFACTOR.md`) are *drafts/input*, **not** decisions — the ADR log is the
-source of truth for what's actually been chosen.
+docs (`TECHNICAL_PLAN.md`, `FEATURE_PLAN.md`, `ARCHITECTURE_REFACTOR.md`) are *drafts/input*, **not**
+decisions — the ADR log is the source of truth for what's actually been chosen.
 
 ### Non-functional targets (learning SLOs)
 Realistic targets for a solo project — aspirational, not contractual, but we measure against them.
@@ -101,7 +102,7 @@ Realistic targets for a solo project — aspirational, not contractual, but we m
 - [ ] App builds and runs (`dotnet build`/`dotnet run`, `npm start`) after the change.
 - [ ] Relevant tests added/updated and green; CI gates pass.
 - [ ] No new high/critical dependency vulnerabilities (`dotnet`/`npm` audit).
-- [ ] Decisions worth keeping captured as an ADR; this `PLAN.md` checkboxes updated.
+- [ ] Decisions worth keeping captured as an ADR; the plan checkboxes (`TECHNICAL_PLAN.md` / `FEATURE_PLAN.md`) updated.
 - [ ] No secrets in source; config externalized per environment.
 
 ---
@@ -173,7 +174,7 @@ Staged so there's always a coherent thing to demo, even if later phases pause.
 BettingSite.slnx
 ├── src/
 │   ├── BettingSite.Domain/          # Entities, Value Objects, Domain Events, Interfaces
-│   ├── BettingSite.Application/     # CQRS Commands/Queries (MediatR), Validators (FluentValidation), Result<T>
+│   ├── BettingSite.Application/     # CQRS Commands/Queries (hand-rolled dispatch, ADR-0004), Validators (FluentValidation), Result<T>
 │   ├── BettingSite.Infrastructure/  # EF Core, Repositories, JWT, local photo storage, SignalR hubs
 │   └── BettingSite.API/             # Controllers (or Minimal API endpoints), Middleware, DI wiring
 └── tests/
@@ -188,9 +189,10 @@ BettingSite.slnx
 - [x] Keep ASP.NET Identity (`ApplicationUser : IdentityUser<int>`, roles, credentials, tokens) in the **Identity context's Infrastructure**. Intent-revealing port (`IIdentityService`) is 1B ([[ADR-0003]], to confirm).
 - [ ] Introduce `Result<T>` / `Error` pattern (replace exception-driven flow for *expected* outcomes).
 - [ ] Application layer: `RegisterCommand`, `LoginQuery`, `GetMembersQuery`, `UpdateMemberCommand` as first vertical slices; registration **orchestrates both contexts** (create auth user → emit event → create `Player`).
-- [ ] FluentValidation validators for all commands, wired via a MediatR `ValidationBehavior` pipeline.
+- [ ] FluentValidation validators for all commands, wired via a hand-rolled `ValidationBehavior` decorator in the dispatch pipeline ([[ADR-0004]]).
+- [ ] Replace AutoMapper with explicit manual mapping (mapper classes / `ToDto()` extensions per slice) and drop the `AutoMapper` package ([[ADR-0004]]).
 - [x] Infrastructure: move EF `DataContext`, repositories, JWT/identity adapter behind their ports. (Cloudinary not applicable — local storage in use.)
-- [ ] API: thin controllers calling MediatR — one action per endpoint, no business logic.
+- [ ] API: thin controllers dispatching commands/queries — one action per endpoint, no business logic.
 - [x] Use primary constructors / modern DI patterns where they read cleanly.
 - [~] Audit EF Core: snake_case naming convention applied; `IEntityTypeConfiguration<>` per entity is 1B.
 - [ ] Global exception handling modernized: `IExceptionHandler` (.NET 8+) + `ProblemDetails`, replacing custom middleware.
@@ -244,13 +246,9 @@ BettingSite.slnx
 - [ ] **Tailwind v4 + SCSS hybrid**: Tailwind for layout/utilities/responsive; SCSS for semantic component skins, theme maps, advanced composition.
 - [ ] Light/dark theme tokens + responsive breakpoints.
 
-### Features (migrate from `client-old/` as reference)
-- [ ] Member list + member profile page.
-- [ ] Edit profile / avatar upload (validated).
-- [ ] Private messaging (real-time via SignalR).
-- [ ] Global chat (SignalR hub).
-- [ ] Admin panel (role-gated).
-- [ ] Wallet / balance display (read-only until the Betting/Wallet domain lands).
+### Features
+The feature checklist lives in `FEATURE_PLAN.md` → *Release A scope* — migrate from `client-old/` as the
+reference implementation, built page-by-page on the design system above (never free-style screens).
 
 ### Accessibility & responsive
 - [ ] All pages pass AXE checks (keyboard nav, contrast, focus management, ARIA labels).
@@ -297,7 +295,7 @@ BettingSite.slnx
 ### Server
 - [ ] Harden the bounded-context boundaries already established in Phase 1 ([[ADR-0002]]) into explicit modules: **Identity**, **Wallet**, **Betting**, **Social**.
 - [ ] Each module: own `IModule` registration, own EF `DbContext` (or dedicated schema); betting/wallet domain logic that spans aggregates lives in **Domain Services** (e.g. bet settlement, payouts, wallet transfers).
-- [ ] Cross-module communication via MediatR domain events (no direct project references between modules).
+- [ ] Cross-module communication via in-process domain events on the hand-rolled dispatcher ([[ADR-0004]]; no direct project references between modules).
 - [ ] Module contracts: shared `Contracts/` project for events and DTOs crossing boundaries.
 - [ ] Feature flags per module (simple config-based to start).
 
@@ -389,4 +387,5 @@ The real decisions live as files in `.claude/adr/` — this table is just an ind
 | [0001](adr/0001-ddd-and-clean-architecture.md) | Adopt DDD + Clean Architecture (Dependency Rule, framework-free Domain, bounded contexts) | **Accepted** |
 | [0002](adr/0002-authentication-as-separate-bounded-context.md) | Auth/Identity is its own bounded context; betting Domain is framework-free POCOs linked by `UserId` | **Accepted** |
 | [0003](adr/0003-identity-access-across-context-boundary.md) | Identity access via port/adapter at the context boundary (not a Domain Service) | Proposed |
-| — | *Open, not yet decided:* error strategy (`Result<T>` vs exceptions); avatar/`Photo` modeling; JWT validation wiring + token/refresh strategy; MediatR vs hand-rolled dispatch; messaging tech; cloud-secret strategy; **technology stack** (good first ADR to write yourself) | — |
+| [0004](adr/0004-hand-rolled-dispatch-and-mapping.md) | Hand-rolled CQRS dispatch + manual mapping instead of MediatR/AutoMapper (learning value, no commercial licenses) | **Accepted** |
+| — | *Open, not yet decided:* error strategy (`Result<T>` vs exceptions); avatar/`Photo` modeling; JWT validation wiring + token/refresh strategy; messaging tech; cloud-secret strategy; **technology stack** (good first ADR to write yourself) | — |

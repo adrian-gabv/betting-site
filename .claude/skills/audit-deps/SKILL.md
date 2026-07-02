@@ -7,16 +7,16 @@ description: Run a local dependency-vulnerability audit across the .NET API and 
 
 Local dependency vulnerability scan. No GitHub/Dependabot PRs — this just runs the package auditors that ship with the toolchains and reports what they find.
 
-The bar (PLAN.md non-functional targets): **zero high/critical vulnerabilities at any merge.** Any High or Critical in the API or the active client is a blocker that must be fixed or explicitly waived.
+The bar (TECHNICAL_PLAN.md non-functional targets): **zero high/critical vulnerabilities at any merge.** Any High or Critical in the API or the active client is a blocker that must be fixed or explicitly waived.
 
 ## Steps
 
-1. **.NET API** — from the repo root:
+1. **.NET solution** — from the repo root:
    ```
-   dotnet restore API/API.csproj
-   dotnet list API/API.csproj package --vulnerable --include-transitive
+   dotnet restore BettingSite.slnx
+   dotnet list BettingSite.slnx package --vulnerable --include-transitive
    ```
-   `no vulnerable packages` = pass. Otherwise capture each package, severity, and advisory URL.
+   Every project reporting `no vulnerable packages` = pass. Otherwise capture each package, severity, and advisory URL.
 
 2. **Active Angular client** (`client/`):
    ```
@@ -33,7 +33,7 @@ The bar (PLAN.md non-functional targets): **zero high/critical vulnerabilities a
 ## Report
 
 Print one summary table: `ecosystem | critical | high | moderate | low | action`. Then:
-- Any **critical/high** in API or `client/` → flag as a merge blocker with the concrete fix (`npm audit fix`, a targeted bump, or `dotnet add API package <id> --version <fixed>`).
+- Any **critical/high** in API or `client/` → flag as a merge blocker with the concrete fix (`npm audit fix`, a targeted bump, or `dotnet add src/BettingSite.<Project> package <id> --version <fixed>` in the project that references it (for a vulnerable *transitive* package, add it as a direct reference at the fixed version to override)).
 - Clean → state "no high/critical" explicitly.
 - `client-old/` counts are informational; list the total but do not gate on them.
 

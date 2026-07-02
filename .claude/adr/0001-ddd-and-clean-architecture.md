@@ -61,6 +61,6 @@ clarity or learning is explicitly *not* adopted — every layer must justify its
 
 ## Notes / links
 
-- Enables: [[ADR-0002]] (auth as a separate context), and the Phase 7 modular monolith / Phase 8 microservices in `../PLAN.md`.
+- Enables: [[ADR-0002]] (auth as a separate context), and the Phase 7 modular monolith / Phase 8 microservices in `../TECHNICAL_PLAN.md`.
 - References: R. C. Martin *Clean Architecture* (the Dependency Rule); Khononov *Learning DDD* (bounded contexts);
   Richards & Ford *Fundamentals of Software Architecture* (trade-offs, the two Laws).

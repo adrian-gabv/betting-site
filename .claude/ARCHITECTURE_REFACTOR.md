@@ -1,18 +1,20 @@
 # Phase 1 — Clean Architecture Refactor (Detailed Plan)
 
-Companion to `PLAN.md` → **Phase 1**. This document is the *how*; `PLAN.md` is the *what/why*.
+Companion to `TECHNICAL_PLAN.md` → **Phase 1**. This document is the *how*; `TECHNICAL_PLAN.md` is the *what/why*.
 It does **not** change the Phase 1 goals (CQRS, `Result<T>`, FluentValidation, `IExceptionHandler`) —
 it sequences them into reviewable steps and resolves the real-world decisions the move forces.
 
-The five "decisions this refactor forces" (D1–D5, §4) **are this project's first ADRs**
-(ADR 0001–0005 in `PLAN.md` → *Architecture Decision Log*). Record the chosen option there once locked.
+The five "decisions this refactor forces" (D1–D5, §4) **seed this project's ADR log**
+(`TECHNICAL_PLAN.md` → *Architecture Decision Log*; ADR numbers follow creation order, so they don't map
+1:1 onto D-numbers). Record the chosen option there once locked.
 
-Adjacent Phase-1 items that `PLAN.md` now folds in but that don't change the mechanics below:
+Adjacent Phase-1 items that `TECHNICAL_PLAN.md` now folds in but that don't change the mechanics below:
 **API versioning** (`Asp.Versioning`), **OpenAPI-first** contracts, and **modular domain folders**
 (Identity/Users/Media/Betting) so the future module boundaries are visible before any split. Layer these
 on after 1B is green.
 
 **Status:** Phase 1A complete (2026-06-28). The four-project solution builds green; all endpoints verified. Phase 1B (patterns) is next.
+Dispatch/mapping decided 2026-07-02 — hand-rolled, no MediatR/AutoMapper ([[ADR-0004]]); mentions below updated accordingly.
 
 Previous state for reference: single `API/` project (`Microsoft.NET.Sdk.Web`). Split into `src/BettingSite.{Domain,Application,Infrastructure,API}` + three `tests/` skeletons. Old `API/` removed from solution.
 
@@ -21,7 +23,7 @@ Previous state for reference: single `API/` project (`Microsoft.NET.Sdk.Web`). S
 ## 1. Why split at all
 
 Today everything lives in one `API/` project. That isn't "wrong" — it runs — but it blocks the
-learning goals in `PLAN.md`:
+learning goals in `TECHNICAL_PLAN.md`:
 
 - **No enforced boundaries.** A controller can `new DataContext()` or reach into Cloudinary directly.
   Nothing stops business rules leaking into HTTP code or EF leaking into DTOs. Project references are
@@ -55,7 +57,7 @@ API/                              API.csproj  (Microsoft.NET.Sdk.Web, net10.0)
 
 ---
 
-## 3. Target structure (matches `PLAN.md`)
+## 3. Target structure (matches `TECHNICAL_PLAN.md`)
 
 ```
 BettingSite.sln
@@ -68,8 +70,8 @@ BettingSite.sln
 │   ├── BettingSite.Application/       # the brain. Use-case-per-file (CQRS).
 │   │   ├── Common/
 │   │   │   ├── Result.cs              Result / Result<T> / Error
-│   │   │   └── Behaviors/             ValidationBehavior (MediatR pipeline)
-│   │   ├── Mappings/                  AutoMapperProfiles
+│   │   │   └── Behaviors/             ValidationBehavior (decorator in the hand-rolled dispatch pipeline, ADR-0004)
+│   │   ├── Mappings/                  manual mapper classes / ToDto() extensions per slice (ADR-0004)
 │   │   ├── Abstractions/              IIdentityService (port → Identity ctx), ICurrentUser, IPhotoStorage, ITokenIssuer
 │   │   └── Features/                  vertical slices, grouped by use case
 │   │       ├── Account/
@@ -150,7 +152,7 @@ depend on the interface and stay unit-testable with a fake. Registration **orche
 Domain Services are reserved for betting/wallet logic (settlement, payouts). Confirm before building the
 Account slices.
 
-### D3 — `Result<T>` vs exceptions (PLAN.md asks for `Result<T>`)
+### D3 — `Result<T>` vs exceptions (TECHNICAL_PLAN.md asks for `Result<T>`)
 
 Split responsibilities rather than picking one:
 - **`Result<T>` / `Error`** for *expected* business outcomes — "username taken", "invalid credentials",
@@ -160,7 +162,7 @@ Split responsibilities rather than picking one:
 
 This is the modern .NET answer and teaches both patterns in their proper lane.
 
-### D4 — `Photo`: owned type or separate entity? (PLAN.md floats "owned types")
+### D4 — `Photo`: owned type or separate entity? (TECHNICAL_PLAN.md floats "owned types")
 
 `Photo` has its own `Id`, a Cloudinary `PublicId`, and an `AppUserId` FK; login `.Include`s it.
 - An **owned type** is right *only if* a user will ever have exactly one avatar and we never query photos
@@ -169,7 +171,7 @@ This is the modern .NET answer and teaches both patterns in their proper lane.
   (the social/profile features in Phase 4 suggest it is).
 
 **Recommendation: keep `Photo` a separate entity** for now; revisit if the model stays single-avatar.
-This intentionally defers the PLAN.md "owned types" idea rather than committing to it blind.
+This intentionally defers the TECHNICAL_PLAN.md "owned types" idea rather than committing to it blind.
 
 ### D5 — Where does JWT *validation* wiring live?
 
@@ -193,7 +195,7 @@ reads `JwtSettings`, and have `Program.cs` call that one method. Keeps `Program.
 | `DTOs/LoginDto,RegisterDto` | `Application/Features/Account/...` | move next to their slice |
 | `DTOs/UserDto` | `Application/Features/Account/` | move (login/register response) |
 | `DTOs/MemberDto,MemberUpdateDto,PhotoDto` | `Application/Features/Members/...` | move next to their slice |
-| `Helpers/AutoMapperProfiles` | `Application/Mappings/` | move |
+| `Helpers/AutoMapperProfiles` | `Infrastructure/Mappings/` | moved in 1A (profiles map Identity entities, so they sit with them); replaced by manual mapping in 1B ([[ADR-0004]]) |
 | `Errors/ApiException` | **delete** | replaced by `ProblemDetails` (D3) |
 | `Data/DataContext` | `Infrastructure/Persistence/` | move; extract relationship config to `Configurations/` |
 | `Data/UserRepository` | `Infrastructure/Persistence/Repositories/` | move |
@@ -214,7 +216,7 @@ reads `JwtSettings`, and have `Program.cs` call that one method. Keeps `Program.
 ### NuGet ownership after the split
 
 - **Domain:** *no external packages* — pure POCOs ([[ADR-0002]]). (Identity packages live in Infrastructure.)
-- **Application:** `MediatR`, `FluentValidation`, `FluentValidation.DependencyInjectionExtensions`, `AutoMapper`.
+- **Application:** `FluentValidation`, `FluentValidation.DependencyInjectionExtensions` — no MediatR/AutoMapper ([[ADR-0004]]).
 - **Infrastructure:** `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Design`,
   `Npgsql.EntityFrameworkCore.PostgreSQL`, `EFCore.NamingConventions`,
   `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, `Microsoft.AspNetCore.Authentication.JwtBearer`,
@@ -262,7 +264,7 @@ Goal: identical runtime behavior, four projects instead of one. Controllers stil
 Introduce one concept at a time, each its own commit, app runnable after each.
 
 1. **`Result<T>` + `Error`** in `Application/Common`. (no behavior change yet)
-2. **MediatR**: register in Application DI; add the package; no handlers yet.
+2. **Dispatcher** ([[ADR-0004]]): define `ICommand<T>`/`IQuery<T>`/handler interfaces + a minimal DI-resolving dispatcher in Application; no handlers yet.
 3. **First vertical slice — Register**: `RegisterCommand` + handler returning `Result<UserDto>`, using the
    `IIdentityService` **port** ([[ADR-0003]], confirm first). `AccountController.Register` becomes a 3-line
    dispatch. Run + test.
@@ -272,16 +274,17 @@ Introduce one concept at a time, each its own commit, app runnable after each.
    `Player`. Add the EF migration. Own commit; smoke-test register / login / profile. *(This is the real
    modeling work, deliberately separated from the 1A file move.)*
 5. **Login** slice (`LoginQuery`), then **GetMembers / GetMember / UpdateMember** (now reading the `Player`).
-   Delete `UserRepository` methods as handlers absorb them (or keep the repo behind the handler — your call).
+   Replace AutoMapper profiles with manual mapping as each slice lands ([[ADR-0004]]); delete
+   `UserRepository` methods as handlers absorb them (or keep the repo behind the handler — your call).
 6. **FluentValidation**: validators for `RegisterCommand`, `LoginQuery`, `UpdateMemberCommand`; wire
-   `ValidationBehavior` into the MediatR pipeline so validation runs before every handler.
+   `ValidationBehavior` as a decorator in the dispatch pipeline ([[ADR-0004]]) so validation runs before every handler.
 7. **`GlobalExceptionHandler : IExceptionHandler`** + `AddProblemDetails()`; delete `ExceptionMiddleware`
    and `ApiException` (D3 — confirm first).
 8. **EF audit**: move relationship config from `OnModelCreating` into `IEntityTypeConfiguration<>` classes;
    confirm snake_case still applied; decide D4.
 9. **Checkpoint:** full smoke test again; controllers contain no business logic. Commit per slice.
 
-> Per `PLAN.md`, **tests come in Phase 2.** 1B leaves clean seams (handlers + `IIdentityService`) so that
+> Per `TECHNICAL_PLAN.md`, **tests come in Phase 2.** 1B leaves clean seams (handlers + `IIdentityService`) so that
 > Phase 2 can unit-test handlers with fakes and integration-test repositories with TestContainers.
 
 ---
@@ -290,7 +293,7 @@ Introduce one concept at a time, each its own commit, app runnable after each.
 
 - [ ] Solution builds with the four-project dependency graph in §3; no reference cycles.
 - [ ] `dotnet run` boots; migrations apply; register / login / members / admin all work unchanged from the client's view (no API contract change).
-- [ ] Controllers contain **no** business logic — each action dispatches a MediatR request and maps `Result` → HTTP.
+- [ ] Controllers contain **no** business logic — each action dispatches a command/query and maps `Result` → HTTP.
 - [ ] Expected failures flow through `Result<T>`; unexpected ones through `IExceptionHandler`/`ProblemDetails`.
 - [ ] Validators run via the MediatR pipeline for all commands/queries that take input.
 - [ ] **Domain has no framework dependencies** — no EF, no ASP.NET Identity, no Cloudinary ([[ADR-0001]]/[[ADR-0002]]).
@@ -314,5 +317,5 @@ Work happens on a branch with a commit per step (§6), so any step is independen
 | D2 | How use cases reach identity/auth | **Proposed ([[ADR-0003]])**: port/adapter at the context boundary (not a Domain Service) |
 | D3 | Errors | *Open proposal*: `Result<T>` for business outcomes + `IExceptionHandler` for the unexpected |
 | D4 | `Photo`/avatar mapping | *Open proposal*: keep a separate entity; revisit if it stays single-avatar |
-| D5 | JWT validation wiring + token/refresh | *Open proposal*: in `AddInfrastructure(config)`; also fix issuer/audience validation + add refresh tokens (PLAN Phase 0 security) |
+| D5 | JWT validation wiring + token/refresh | *Open proposal*: in `AddInfrastructure(config)`; also fix issuer/audience validation + add refresh tokens (TECHNICAL_PLAN Phase 0 security) |
 | — | Folder convention | *Open proposal*: `Features/<UseCase>/` vertical slices (vs. tech-folders `Commands/`, `Queries/`) |

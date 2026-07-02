@@ -7,9 +7,9 @@ This folder is two things at once:
    (someone who makes code work) into a *Software Engineer* (someone who makes and defends decisions
    under constraints, and owns their consequences over time).
 
-Read this whole file once. Then the worked examples (`0001`–`0003`) will make sense as *examples of the
-skill*, not just project trivia — note `0001`/`0002` are `Accepted` (decided), `0003` is `Proposed` (still
-open, your call). Then write your own (start with the exercise at the bottom).
+Read this whole file once. Then the worked examples (`0001`–`0004`) will make sense as *examples of the
+skill*, not just project trivia — note `0001`/`0002`/`0004` are `Accepted` (decided), `0003` is `Proposed`
+(still open, your call). Then write your own (start with the exercise at the bottom).
 
 ---
 
@@ -150,7 +150,7 @@ design**, and it's a deep field. The fastest way to get good is a loop:
 
 This project is deliberately structured to give you that loop across the whole 2026 stack: clean
 architecture, CQRS, modular monolith, microservices, messaging, Kubernetes, observability. Each phase in
-`../PLAN.md` is a pile of latent decisions waiting to be ADR'd. **Conway's Law** ("systems mirror the
+`../TECHNICAL_PLAN.md` is a pile of latent decisions waiting to be ADR'd. **Conway's Law** ("systems mirror the
 communication structure of the org that builds them") is worth internalizing early — it's *the* reason
 service boundaries are an org decision as much as a technical one, even for a solo project where "the org"
 is just you.
@@ -183,9 +183,9 @@ You don't need all of these. Go top-to-bottom; stop when you're unblocked and co
 - **Richards & Ford, *Software Architecture: The Hard Parts*** — exactly your Phase 7→8 problem:
   how/when to decompose, data ownership, distributed transactions, the trade-offs of going distributed.
 - **Sam Newman, *Building Microservices* (2nd ed)** and ***Monolith to Microservices*** — the strangler
-  pattern, when *not* to, incremental extraction. Pairs with the Phase 7→8 path in `../PLAN.md`.
+  pattern, when *not* to, incremental extraction. Pairs with the Phase 7→8 path in `../TECHNICAL_PLAN.md`.
 - **Chris Richardson, microservices.io + *Microservices Patterns*** — saga, outbox, API composition,
-  CQRS, idempotency — the patterns named in `../PLAN.md` Phase 8.
+  CQRS, idempotency — the patterns named in `../TECHNICAL_PLAN.md` Phase 8.
 - **Neal Ford et al., *Building Evolutionary Architectures*** — fitness functions; how to keep an
   architecture honest as it changes (your CI gates are baby fitness functions).
 
@@ -201,7 +201,7 @@ You don't need all of these. Go top-to-bottom; stop when you're unblocked and co
 
 ### DevOps, cloud, SRE (your later phases)
 - **Google SRE book + SRE Workbook** (sre.google/books) — free; SLOs, error budgets, toil. Your
-  "non-functional targets" in `../PLAN.md` come straight from this thinking.
+  "non-functional targets" in `../TECHNICAL_PLAN.md` come straight from this thinking.
 - **Forsgren, Humble, Kim, *Accelerate*** — the DORA metrics; *why* CI/CD and small batches win, with data.
 - **Kim et al., *The Phoenix Project* / *The DevOps Handbook*** — the narrative + the practices.
 
@@ -224,7 +224,8 @@ You don't need all of these. Go top-to-bottom; stop when you're unblocked and co
 
 The fastest way to learn ADRs is to write one where the decision *isn't* pre-chewed for you.
 
-1. **Write `0004-technology-stack.md` yourself.** The stack (.NET 10 + Angular 22 + PostgreSQL) was
+1. **Write the technology-stack ADR yourself** (next free number — `0004` went to the dispatch/mapping
+   decision; numbering is creation order, not logical order). The stack (.NET 10 + Angular 22 + PostgreSQL) was
    partly *inherited* from the existing project — which makes it a great first ADR, because documenting an
    *inherited / constraint-driven* decision is its own real skill. Frame it honestly:
    - *Forces:* existing codebase already on this stack; solo learning project; want modern + employable +
@@ -234,9 +235,10 @@ The fastest way to learn ADRs is to write one where the decision *isn't* pre-che
    - *Drivers to score against:* time-to-learn, ecosystem maturity, cloud/k8s fit, employability,
      migration cost, "joy of learning."
    - End with the consequences you accept (e.g. Angular's steeper curve, .NET's Windows-history baggage).
-2. **Find one decision already lurking in `../PLAN.md` and ADR it before you build it.** Good candidates:
-   *MediatR vs hand-rolled dispatch*, *RabbitMQ vs Azure Service Bus (and why both)*, *YARP as the gateway*,
-   *database-per-service*, *Tailwind+SCSS hybrid*, *Serilog+OpenTelemetry*.
+2. **Find one decision already lurking in `../TECHNICAL_PLAN.md` and ADR it before you build it.** Good candidates:
+   *RabbitMQ vs Azure Service Bus (and why both)*, *YARP as the gateway*, *database-per-service*,
+   *Tailwind+SCSS hybrid*, *Serilog+OpenTelemetry*. (*MediatR vs hand-rolled dispatch* was one of these —
+   it became [[ADR-0004]].)
 3. **After you build something, come back and add a one-line "Consequences — observed" note** to its ADR.
    Comparing what you *predicted* vs what *happened* is the feedback loop that actually builds judgement.
 

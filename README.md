@@ -37,7 +37,7 @@ betting-site/
 │   │   ├── Identity/                ApplicationUser : IdentityUser<int>, AppRole, AppUserRole
 │   │   ├── Mappings/                AutoMapperProfiles
 │   │   ├── Persistence/             DataContext, UserRepository, Migrations, Seed
-│   │   ├── Services/                JwtTokenService, LocalPhotoService
+│   │   ├── Services/                TokenService, LocalPhotoService
 │   │   ├── Settings/                JwtSettings
 │   │   └── DependencyInjection.cs   AddInfrastructure() — single DI entry point
 │   └── BettingSite.API/             HTTP edge: controllers, middleware, Program.cs
@@ -200,7 +200,8 @@ All routes are prefixed with `/api`. Endpoints marked 🔒 require a JWT bearer 
 
 This project follows a phased learning plan covering Clean Architecture, a testing pyramid, CI/CD, observability, a modular monolith, microservices, and Azure/Kubernetes deployment.
 
-- **Full roadmap:** [`.claude/PLAN.md`](.claude/PLAN.md)
+- **Technical roadmap:** [`.claude/TECHNICAL_PLAN.md`](.claude/TECHNICAL_PLAN.md)
+- **Feature/product roadmap:** [`.claude/FEATURE_PLAN.md`](.claude/FEATURE_PLAN.md)
 - **Phase 1 (Clean Architecture refactor) detail:** [`.claude/ARCHITECTURE_REFACTOR.md`](.claude/ARCHITECTURE_REFACTOR.md)
 
 ---

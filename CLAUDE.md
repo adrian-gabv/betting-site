@@ -12,7 +12,8 @@ Personal learning sandbox — not production. Learning over shipping; every arch
 
 | Pointer | Path |
 |---|---|
-| Roadmap & epics | `.claude/PLAN.md` |
+| Technical roadmap & epics | `.claude/TECHNICAL_PLAN.md` |
+| Feature/product roadmap | `.claude/FEATURE_PLAN.md` |
 | Clean Architecture plan | `.claude/ARCHITECTURE_REFACTOR.md` |
 | ADRs | `.claude/adr/` |
 
