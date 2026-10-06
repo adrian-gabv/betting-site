@@ -454,7 +454,7 @@ $RECYCLE.BIN/
 !.vscode/extensions.json
 ssl
 github-plan
-.claude/btw-chats.md
+.agents/btw-chats.md
 
 # Local secrets and environment
 .env

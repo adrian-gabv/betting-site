@@ -34,7 +34,14 @@ Always consider it.
 
 ## Decision
 
-We chose **<option>** because **<the because — tie it back to the drivers>**.
+While Proposed: recommend an option and state what evidence or discussion is still needed.
+Once Adrian accepts: record **the chosen option**, **why it fits the drivers**, and the actual decision date.
+
+## Learning and validation evidence
+
+- What can Adrian explain or demonstrate about this choice?
+- Which small experiment, failure-path test, or source informed it? Record evidence, not just confidence.
+- Which assumptions remain untested? Do not fill in learning evidence on Adrian's behalf.
 
 ## Consequences
 

@@ -2,7 +2,7 @@
 
 A casino-style betting platform with social features — friend system, private messaging, user profiles, and a global chat — built on **ASP.NET Core (.NET 10)** and **Angular 22**.
 
-> **Status: active rewrite / learning sandbox.** The backend API is functional (auth, identity, roles, profiles, local photo uploads). PostgreSQL runs via Docker. The `client/` Angular 22 app is a fresh migration skeleton; the full feature implementation lives in `client-old/` and is being ported over. This repo is used to practice modern .NET, Angular, Clean Architecture, and DevOps — see [Roadmap](#️-roadmap).
+> **Status: active rewrite / learning sandbox.** The backend API implements auth, identity, roles, profiles, and local photo uploads. PostgreSQL runs via Docker. The `client/` Angular 22 app is a migration skeleton; `client-old/` provides the legacy UI reference, not proof that every backend feature exists. This repo is used to practice modern .NET, Angular, Clean Architecture, and DevOps — see [Backlogs](#backlogs).
 
 ---
 
@@ -34,9 +34,10 @@ betting-site/
 │   │   ├── Common/                  PhotoUploadResult, PhotoDeleteResult
 │   │   └── DTOs/                    Request/response shapes
 │   ├── BettingSite.Infrastructure/  Framework implementations
-│   │   ├── Identity/                ApplicationUser : IdentityUser<int>, AppRole, AppUserRole
+│   │   ├── Identity/                ApplicationUser : IdentityUser<int>, ApplicationRole, ApplicationUserRole
 │   │   ├── Mappings/                AutoMapperProfiles
-│   │   ├── Persistence/             DataContext, UserRepository, Migrations, Seed
+│   │   ├── Migrations/              EF migrations and model snapshot
+│   │   ├── Persistence/             DataContext, Repositories/UserRepository, Seed
 │   │   ├── Services/                TokenService, LocalPhotoService
 │   │   ├── Settings/                JwtSettings
 │   │   └── DependencyInjection.cs   AddInfrastructure() — single DI entry point
@@ -107,6 +108,7 @@ dotnet user-secrets set "JwtSettings:TokenKey" \
   --project src/BettingSite.API
 
 dotnet user-secrets set "SeedSettings:AdminPassword" "your-admin-password" --project src/BettingSite.API
+dotnet user-secrets set "SeedSettings:AdminEmail" "admin@example.test" --project src/BettingSite.API
 dotnet user-secrets set "SeedSettings:DefaultUserPassword" "your-dev-password" --project src/BettingSite.API
 ```
 
@@ -135,7 +137,7 @@ npm start        # ng serve → https://localhost:4200
 
 EF migrations are applied automatically on startup in development (`AutoMigrateOnStartup: true` in `appsettings.Development.json`). This is **disabled by default** (`false` in `appsettings.json`) to avoid race conditions in multi-instance deployments — run migrations as a separate step in production.
 
-On a fresh database, `Seed.cs` creates the `User`, `Moderator`, and `Admin` roles and loads sample users from `src/BettingSite.Infrastructure/Persistence/Seed/UserSeedData.json`. Seeded users share a single dev password defined in that JSON file.
+On a fresh database, `Seed.cs` creates the `User`, `Moderator`, and `Admin` roles and loads sample users from `src/BettingSite.Infrastructure/Persistence/Seed/UserSeedData.json`. Passwords come from `SeedSettings:DefaultUserPassword` and `SeedSettings:AdminPassword` in local configuration/user-secrets; the admin email comes from `SeedSettings:AdminEmail`. Do not put credentials in the seed JSON.
 
 ### EF Core commands
 
@@ -196,15 +198,25 @@ All routes are prefixed with `/api`. Endpoints marked 🔒 require a JWT bearer 
 
 ---
 
-## Roadmap
+## Backlogs
 
-This project follows a phased learning plan covering Clean Architecture, a testing pyramid, CI/CD, observability, a modular monolith, microservices, and Azure/Kubernetes deployment.
+- [Technical backlog](.agents/TECHNICAL_PLAN.md): remaining architecture, testing, client, and delivery work.
+- [Feature backlog](.agents/FEATURE_PLAN.md): implemented functionality and upcoming features.
 
-- **Technical roadmap:** [`.claude/TECHNICAL_PLAN.md`](.claude/TECHNICAL_PLAN.md)
-- **Feature/product roadmap:** [`.claude/FEATURE_PLAN.md`](.claude/FEATURE_PLAN.md)
-- **Phase 1 (Clean Architecture refactor) detail:** [`.claude/ARCHITECTURE_REFACTOR.md`](.claude/ARCHITECTURE_REFACTOR.md)
+## AI assistants
 
----
+[AGENTS.md](AGENTS.md) contains short repository instructions. `.agents/` holds the two backlogs and
+shared task procedures in `skills/`. Ask an assistant to read the matching `SKILL.md` when it does not
+discover it automatically.
+
+Codex discovers `.agents/skills`. Claude Code can load the root `AGENTS.md` on supported versions, but
+uses its own locations for native skill commands; it can follow our skill files directly from their paths.
+No additional agent folders are needed for that workflow. See [Claude instructions](https://code.claude.com/docs/en/memory#agents-md)
+and [skill discovery](https://code.claude.com/docs/en/skills#choose-where-skills-load).
+
+Global settings are personal preferences applied across projects; skills are procedures for particular
+tasks. The earlier global templates were installed in `~/.codex/AGENTS.md` and `~/.agents/skills` on this
+machine. Those settings do not need duplicate templates inside this repository.
 
 ## License
 
